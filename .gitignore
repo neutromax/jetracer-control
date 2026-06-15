@@ -32,3 +32,8 @@ instance/
 
 # Logs
 *.log
+
+# Scratch and diagnostic files
+scratch_*.py
+test_*.py
+cam_test_results.json
