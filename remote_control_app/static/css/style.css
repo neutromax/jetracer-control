@@ -1,0 +1,1113 @@
+:root {
+    --bg-main: #141414;
+    --bg-panel: #1e1e1e;
+    --bg-panel-light: #252525;
+    --bg-hud: rgba(20, 20, 20, 0.7);
+    --accent-green: #a4e326;
+    --accent-green-dim: #5c7b1a;
+    --accent-red: #8b2a36;
+    --accent-red-bg: #3d1a1f;
+    --text-main: #e0e0e0;
+    --text-muted: #888888;
+    --font-ui: 'Inter', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    --border-color: #333333;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    user-select: none;
+}
+
+body {
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    font-family: var(--font-ui);
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Typography & General Classes */
+.section-title {
+    font-size: 10px;
+    letter-spacing: 1px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.highlight {
+    color: var(--accent-green);
+}
+
+.btn {
+    background: var(--bg-panel-light);
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    font-family: var(--font-ui);
+    font-weight: 600;
+    font-size: 11px;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.btn:hover {
+    background: #333;
+    border-color: #555;
+}
+
+.btn:active {
+    transform: scale(0.98);
+}
+
+.btn-arm {
+    background: var(--accent-green);
+    color: #000;
+    border: none;
+}
+.btn-arm:hover {
+    background: #b5f530;
+}
+
+.btn-stop-engine {
+    background: var(--accent-red-bg);
+    color: #ff8888;
+    border: 1px solid var(--accent-red);
+    width: 100%;
+    padding: 12px;
+    border-radius: 6px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: 0.2s;
+}
+.btn-stop-engine:hover {
+    background: var(--accent-red);
+    color: white;
+}
+
+/* APP CONTAINER */
+.app-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    padding: 16px;
+    gap: 16px;
+}
+
+/* TOP HEADER */
+.top-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.logo {
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: 1px;
+    width: 250px;
+}
+
+.top-nav {
+    display: flex;
+    gap: 24px;
+    flex: 1;
+}
+
+.top-nav a {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid transparent;
+}
+
+.top-nav a.active {
+    color: var(--accent-green);
+    border-bottom: 2px solid var(--accent-green);
+}
+
+.top-status {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
+.icon-group {
+    display: flex;
+    gap: 16px;
+    color: var(--text-muted);
+}
+
+.clickable-icon {
+    cursor: pointer;
+    transition: 0.2s;
+}
+.clickable-icon:hover {
+    color: var(--accent-green);
+    transform: scale(1.2);
+}
+
+/* MAIN CONTENT GRID */
+.main-content {
+    display: flex;
+    flex: 1;
+    gap: 16px;
+    min-height: 0;
+}
+
+/* SIDEBAR */
+.sidebar {
+    width: 220px;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-panel);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.pilot-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.pilot-avatar-box {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    overflow: hidden;
+}
+.pilot-avatar {
+    width: 100%;
+    height: 100%;
+}
+
+.pilot-name {
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 4px;
+}
+
+.pilot-status {
+    font-size: 10px;
+    color: var(--accent-green);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+}
+
+.status-dot {
+    width: 6px;
+    height: 6px;
+    background: var(--accent-green);
+    border-radius: 50%;
+    display: inline-block;
+    box-shadow: 0 0 6px var(--accent-green);
+}
+
+.side-nav {
+    padding: 16px 0;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.side-nav a {
+    padding: 12px 20px;
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-left: 3px solid transparent;
+}
+
+.side-nav a.active {
+    color: var(--accent-green);
+    background: rgba(164, 227, 38, 0.05);
+    border-left-color: var(--accent-green);
+}
+
+.side-nav a:hover:not(.active) {
+    color: var(--text-main);
+    background: rgba(255,255,255,0.02);
+}
+
+.nav-icon {
+    font-size: 16px;
+    width: 20px;
+    text-align: center;
+}
+
+.sidebar-bottom {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.support-link {
+    font-size: 11px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+/* CAMERA VIEW */
+.camera-view {
+    flex: 1;
+    background: #0a0a0a url('data:image/svg+xml;utf8,<svg width="40" height="40" xmlns="http://www.w3.org/2000/svg"><rect width="40" height="40" fill="%230a0a0a"/><path d="M0 40 L40 0 H20 L0 20" fill="%23111111"/><path d="M40 40 H20 L40 20" fill="%23111111"/></svg>');
+    background-size: 40px 40px;
+    border-radius: 8px;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+}
+
+.camera-view::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(180deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0) 20%, rgba(0,0,0,0) 70%, rgba(0,0,0,0.8) 100%);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.hud {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    pointer-events: none; /* pass-through so camera bg stays clickable */
+    z-index: 2;
+}
+
+/* Re-enable clicks on interactive children inside the HUD */
+.hud button,
+.hud input,
+.hud canvas,
+.hud .camera-toggle-box,
+.hud .slider-control,
+.hud .joystick-wrap,
+.hud .throttle-track,
+.hud .trim-control {
+    pointer-events: auto;
+}
+
+.hud-top {
+    display: flex;
+    gap: 16px;
+}
+
+.hud-bottom {
+    display: flex;
+    gap: 16px;
+    align-items: flex-end;
+    flex-wrap: wrap; /* Prevent HUD elements from overflowing horizontally */
+}
+
+.hud-box {
+    background: var(--bg-hud);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 16px;
+    border-radius: 8px;
+}
+
+.hud-box .label {
+    font-size: 9px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
+.hud-box .value {
+    font-family: var(--font-mono);
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.hud-box .unit {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.latency-box, .fps-box {
+    width: 120px;
+}
+
+.coord-box {
+    margin-left: auto;
+    text-align: right;
+}
+
+.coord-box .value {
+    font-size: 16px;
+}
+
+.gpu-box, .battery-box {
+    flex: 1;
+    max-width: 250px;
+}
+
+.label-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 12px;
+}
+
+.value.small {
+    font-size: 18px;
+}
+
+.bar-meter {
+    display: flex;
+    gap: 4px;
+    height: 24px;
+}
+
+.bar {
+    flex: 1;
+    background: rgba(255,255,255,0.1);
+    border-radius: 2px;
+}
+
+.bar.full { background: var(--accent-green-dim); }
+.bar.half { background: linear-gradient(90deg, var(--accent-green-dim) 50%, rgba(255,255,255,0.1) 50%); }
+
+.battery-stats {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+}
+
+.speed-box {
+    margin-left: auto;
+    text-align: center;
+    padding: 24px 32px;
+}
+
+.speed-value {
+    font-family: var(--font-mono);
+    font-size: 48px;
+    font-weight: 800;
+    color: var(--accent-green);
+    line-height: 1;
+    text-shadow: 0 0 20px rgba(164, 227, 38, 0.4);
+}
+
+.speed-unit {
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-top: 8px;
+    letter-spacing: 1px;
+}
+
+.reticle {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.reticle-box {
+    width: 120px;
+    height: 120px;
+    border: 1px solid rgba(164, 227, 38, 0.3);
+    border-radius: 16px;
+    position: relative;
+}
+
+.reticle-box::after {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 6px; height: 6px;
+    background: var(--accent-green);
+    border-radius: 50%;
+    box-shadow: 0 0 10px var(--accent-green);
+}
+
+/* CONTROLS PANEL */
+.controls-panel {
+    width: 320px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    max-height: 100%;
+    overflow-y: auto; /* Prevent vertical overflow overlaps */
+    scrollbar-width: thin;
+}
+
+.control-section {
+    background: var(--bg-panel);
+    border-radius: 8px;
+    padding: 20px;
+}
+
+.joystick-wrapper {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1;
+    background: var(--bg-main);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.joystick-labels {
+    position: absolute;
+    font-size: 10px;
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+}
+
+.joystick-labels.top { top: 12px; }
+.joystick-labels.bottom { bottom: 12px; }
+.joystick-labels.left { left: 12px; }
+.joystick-labels.right { right: 12px; }
+
+canvas#joystickCanvas {
+    background: rgba(255,255,255,0.02);
+    border-radius: 24px;
+    border: 1px solid rgba(255,255,255,0.05);
+    cursor: grab;
+}
+canvas#joystickCanvas:active {
+    cursor: grabbing;
+}
+
+.throttle-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.throttle-flex {
+    display: flex;
+    gap: 20px;
+    height: 100%;
+}
+
+.throttle-bar-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100%;
+    min-height: 150px;
+}
+
+.throttle-track {
+    width: 24px;
+    flex: 1;
+    background: var(--bg-main);
+    border-radius: 12px;
+    position: relative;
+    margin: 12px 0;
+    overflow: hidden;
+    cursor: ns-resize;
+    border: 1px solid var(--border-color);
+}
+
+.throttle-fill {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: var(--accent-green);
+    border-radius: 12px;
+}
+
+.throttle-handle {
+    position: absolute;
+    left: 0px; right: 0px;
+    height: 12px;
+    background: #fff;
+    border-radius: 6px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    pointer-events: none;
+}
+
+.throttle-percent {
+    font-family: var(--font-mono);
+    font-size: 14px;
+    color: var(--accent-green);
+    margin-top: 8px;
+}
+
+.sliders-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+}
+
+.slider-group {
+    background: var(--bg-main);
+    padding: 16px;
+    border-radius: 8px;
+}
+
+.slider-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.slider-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+}
+
+.custom-slider {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 4px;
+    background: #333;
+    border-radius: 2px;
+    outline: none;
+}
+
+.custom-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--accent-green);
+    cursor: pointer;
+}
+
+.slider-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 9px;
+    color: var(--text-muted);
+    margin-top: 8px;
+}
+
+/* TELEMETRY PANEL */
+.telemetry-panel {
+    height: 120px;
+    display: flex;
+    gap: 16px;
+}
+
+.log-feed {
+    flex: 2;
+    background: var(--bg-panel);
+    border-radius: 8px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+}
+
+.log-entries {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 50px;
+}
+
+.log-entry {
+    color: var(--text-muted);
+}
+
+.log-entry .timestamp { color: #555; }
+.log-entry .tag { color: var(--text-main); font-weight: bold; }
+.log-entry .tag.green { color: var(--accent-green); }
+.log-entry .tag.red { color: #ff5555; }
+
+.telemetry-stats {
+    flex: 1.5;
+    display: flex;
+    gap: 16px;
+}
+
+.stat-box {
+    flex: 1;
+    background: var(--bg-panel);
+    border-radius: 8px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.stat-box.ai-box {
+    border-left: 2px solid var(--accent-green);
+}
+
+.stat-value {
+    font-size: 24px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+}
+
+.stat-value .unit {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.stat-sub {
+    font-size: 9px;
+    color: var(--text-muted);
+    margin-left: 8px;
+}
+
+.stat-sub.green { color: var(--accent-green); }
+
+.capture-section {
+    width: 200px;
+    display: flex;
+}
+
+.btn-capture {
+    width: 100%;
+    height: 100%;
+    background: var(--bg-panel);
+    flex-direction: column;
+    gap: 8px;
+    font-size: 12px;
+}
+
+.btn-capture .icon {
+    font-size: 24px;
+    color: var(--accent-green);
+}
+
+.btn-capture:hover {
+    background: #2a2a2a;
+}
+
+/* ==========================================
+   RESPONSIVE DESIGN & MEDIA QUERIES
+   ========================================== */
+
+/* 1. Large tablets / small desktops (1200px and down) */
+@media (max-width: 1200px) {
+    .app-container {
+        padding: 12px;
+        gap: 12px;
+        height: 100vh;
+    }
+    .main-content {
+        gap: 12px;
+    }
+    .hud {
+        padding: 16px;
+    }
+    .hud-box {
+        padding: 12px;
+    }
+    .speed-value {
+        font-size: 32px;
+    }
+    .speed-box {
+        padding: 16px 20px;
+    }
+    .gpu-box, .battery-box {
+        max-width: 180px;
+    }
+}
+
+/* 1.5. Desktop/Tablet Transition (1024px and down) */
+@media (max-width: 1024px) {
+    .hud-bottom {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .gpu-box, .battery-box {
+        max-width: 130px;
+        padding: 8px;
+    }
+    .speed-box {
+        padding: 8px 12px;
+    }
+    .camera-toggle-box {
+        margin-left: 8px;
+    }
+}
+
+/* 2. Tablets & medium screens (992px and down) */
+@media (max-width: 992px) {
+    /* Collapse sidebar to icon-only mode */
+    .sidebar {
+        width: 68px;
+        min-width: 68px;
+    }
+    .pilot-info {
+        padding: 12px;
+        justify-content: center;
+        border-bottom: 1px solid var(--border-color);
+    }
+    .pilot-info > div:not(.pilot-avatar-box) {
+        display: none;
+    }
+    .side-nav a {
+        padding: 12px;
+        justify-content: center;
+    }
+    .side-nav a span {
+        display: none;
+    }
+    .side-nav a .nav-icon {
+        margin: 0;
+        font-size: 18px;
+    }
+    .sidebar-bottom {
+        padding: 12px;
+        align-items: center;
+    }
+    .sidebar-bottom .btn-stop-engine span {
+        display: none;
+    }
+    .sidebar-bottom .btn-stop-engine .btn-icon-only {
+        display: inline-block !important;
+        font-size: 16px;
+    }
+    .sidebar-bottom .support-link span {
+        display: none;
+    }
+    .sidebar-bottom .support-link {
+        justify-content: center;
+        padding: 4px 0;
+    }
+
+    /* Wrap telemetry panel */
+    .telemetry-panel {
+        height: auto;
+        flex-direction: column;
+        gap: 12px;
+    }
+    .log-feed {
+        flex: none;
+        width: 100%;
+        height: 120px;
+    }
+    .telemetry-stats {
+        flex: none;
+        width: 100%;
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+    .stat-box {
+        flex: 1 1 calc(33.333% - 8px);
+        min-width: 120px;
+        height: auto;
+        min-height: 80px;
+        padding: 12px;
+    }
+    .capture-section {
+        width: 100%;
+        height: 50px;
+        flex: none;
+    }
+    .btn-capture {
+        flex-direction: row;
+        justify-content: center;
+        align-items: center;
+        gap: 12px;
+        padding: 12px;
+    }
+}
+
+/* 3. Mobile devices & small portrait screens (768px and down) */
+@media (max-width: 768px) {
+    body {
+        overflow-y: auto;
+        height: auto;
+    }
+    .app-container {
+        height: auto;
+        min-height: 100vh;
+        overflow-y: visible;
+        padding: 8px;
+        gap: 8px;
+    }
+    
+    /* Hide sidebar completely on mobile, use top navigation */
+    .sidebar {
+        display: none;
+    }
+    
+    /* Responsive header */
+    .top-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+        padding-bottom: 8px;
+    }
+    .logo {
+        text-align: center;
+        width: 100%;
+    }
+    .top-nav {
+        justify-content: center;
+        padding-bottom: 4px;
+        gap: 16px;
+    }
+    .top-status {
+        justify-content: space-between;
+        width: 100%;
+        gap: 12px;
+    }
+
+    /* Stack main content vertically */
+    .main-content {
+        flex-direction: column;
+        height: auto;
+        flex: none;
+        gap: 8px;
+    }
+    
+    /* Stack drive section elements */
+    #section-drive {
+        flex-direction: column !important;
+        height: auto;
+        flex: none;
+        gap: 8px;
+    }
+    
+    /* Adapt camera view aspect ratio */
+    .camera-view {
+        width: 100%;
+        aspect-ratio: 16/10;
+        height: auto;
+        min-height: 240px;
+        flex: none;
+    }
+    
+    /* Adjust HUD positioning and typography to fit small screen */
+    .hud {
+        padding: 8px;
+        justify-content: space-between;
+    }
+    .hud-top {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        width: 100%;
+    }
+    .latency-box, .fps-box {
+        width: auto;
+        flex: 1;
+        min-width: 65px;
+        padding: 6px 10px;
+    }
+    .hud-box .label {
+        font-size: 8px;
+        margin-bottom: 4px;
+    }
+    .hud-box .value {
+        font-size: 16px;
+    }
+    .hud-box .unit {
+        font-size: 10px;
+    }
+    .coord-box {
+        width: 100%;
+        text-align: left;
+        margin-left: 0;
+        background: var(--bg-hud);
+        padding: 6px 10px;
+        border-radius: 6px;
+        border: 1px solid rgba(255,255,255,0.1);
+    }
+    .coord-box .label {
+        text-align: left !important;
+        font-size: 8px;
+    }
+    .coord-box .value {
+        font-size: 11px;
+    }
+    
+    .reticle {
+        display: none; /* Hide center reticle to declutter on small viewports */
+    }
+
+    .hud-bottom {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        width: 100%;
+        align-items: center;
+    }
+    .gpu-box, .battery-box {
+        flex: 1;
+        max-width: none;
+        min-width: 100px;
+        padding: 6px 10px;
+    }
+    .bar-meter {
+        height: 12px;
+    }
+    .battery-stats {
+        font-size: 8px;
+    }
+    .speed-box {
+        width: 100%;
+        margin-left: 0;
+        padding: 6px 12px;
+        background: var(--bg-hud);
+        border-radius: 6px;
+        border: 1px solid rgba(255,255,255,0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+    .speed-value {
+        font-size: 20px;
+    }
+    .speed-unit {
+        margin-top: 0;
+        font-size: 8px;
+    }
+    .camera-toggle-box {
+        width: 100%;
+        margin-left: 0 !important;
+    }
+    .camera-toggle-box button {
+        width: 100%;
+        padding: 6px !important;
+    }
+
+    /* Stack driving controls and throttle side-by-side or stack on very small screens */
+    .controls-panel {
+        width: 100%;
+        flex: none;
+        display: flex;
+        flex-direction: row;
+        gap: 8px;
+    }
+    .controls-panel > div {
+        flex: 1;
+        padding: 12px;
+    }
+    .joystick-wrapper {
+        max-width: 160px;
+        margin: 0 auto;
+    }
+    .throttle-flex {
+        gap: 12px;
+    }
+    .throttle-bar-container {
+        min-height: 120px;
+    }
+    .sliders-container {
+        gap: 8px;
+    }
+    .slider-group {
+        padding: 8px;
+    }
+    
+    .stat-box {
+        flex: 1 1 100%;
+    }
+}
+
+/* 4. Extremely small mobile viewports (480px and down) */
+@media (max-width: 480px) {
+    .controls-panel {
+        flex-direction: column;
+    }
+    .controls-panel > div {
+        width: 100%;
+    }
+    .joystick-wrapper {
+        max-width: 180px;
+    }
+}
+
+/* ==========================================
+   EMBEDDED SSH TERMINAL STYLING
+   ========================================== */
+
+.terminal-container {
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8);
+    border: 1px solid var(--border-color);
+}
+
+.terminal-output {
+    line-height: 1.5;
+    padding-right: 8px;
+}
+
+.terminal-output::-webkit-scrollbar {
+    width: 6px;
+}
+.terminal-output::-webkit-scrollbar-track {
+    background: transparent;
+}
+.terminal-output::-webkit-scrollbar-thumb {
+    background: #333;
+    border-radius: 3px;
+}
+.terminal-output::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-green);
+}
+
+.terminal-prompt {
+    color: var(--accent-green);
+    text-shadow: 0 0 5px rgba(164, 227, 38, 0.3);
+}
+
+#terminalInput {
+    caret-color: var(--accent-green);
+}
+
+#terminalStatusText {
+    transition: color 0.3s ease;
+}
+
+.status-dot.connected {
+    background: var(--accent-green) !important;
+    box-shadow: 0 0 6px var(--accent-green) !important;
+}
+.status-dot.disconnected {
+    background: var(--accent-red) !important;
+    box-shadow: 0 0 6px var(--accent-red) !important;
+}
+.status-dot.reconnecting {
+    background: #ffaa00 !important;
+    box-shadow: 0 0 6px #ffaa00 !important;
+}

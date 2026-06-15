@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JETRACER_COMMAND · Connect</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+        }
+        .login-box {
+            background: var(--bg-panel);
+            padding: 40px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.8);
+            text-align: center;
+        }
+        .login-box h1 {
+            font-size: 24px;
+            margin-bottom: 8px;
+            color: var(--text-main);
+            font-weight: 800;
+            letter-spacing: 1px;
+        }
+        .login-box p {
+            color: var(--text-muted);
+            font-size: 12px;
+            margin-bottom: 32px;
+        }
+        .input-group {
+            margin-bottom: 24px;
+            text-align: left;
+        }
+        .input-group label {
+            display: block;
+            font-size: 10px;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 14px;
+            background: var(--bg-main);
+            border: 1px solid var(--border-color);
+            color: var(--accent-green);
+            border-radius: 6px;
+            font-family: var(--font-mono);
+            font-size: 16px;
+            outline: none;
+            transition: 0.2s;
+            text-align: center;
+        }
+        .input-group input:focus {
+            border-color: var(--accent-green);
+            box-shadow: 0 0 10px rgba(164, 227, 38, 0.2);
+        }
+        .btn-connect {
+            width: 100%;
+            padding: 14px;
+            background: var(--accent-green);
+            color: #000;
+            border: none;
+            border-radius: 6px;
+            font-weight: 800;
+            font-size: 14px;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-connect:hover {
+            background: #b5f530;
+            box-shadow: 0 0 15px rgba(164, 227, 38, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <div class="login-box">
+        <h1>JETRACER_COMMAND</h1>
+        <p>ENTER VEHICLE IP ADDRESS TO ESTABLISH UPLINK</p>
+        <form method="POST" action="/login">
+            <div class="input-group">
+                <label>Target IPv4 Address</label>
+                <input type="text" name="ip_address" placeholder="192.168.1.xxx" required autocomplete="off">
+            </div>
+            <button type="submit" class="btn-connect">CONNECT</button>
+        </form>
+    </div>
+</body>
+</html>

@@ -1,0 +1,222 @@
+[
+  {
+    "cycle": 1,
+    "stop_response": {
+      "camera_running": false,
+      "status": "ok"
+    },
+    "status_after_stop": {
+      "camera_opened": false,
+      "camera_running": false
+    },
+    "feed_status_stopped": 200,
+    "start_response": {
+      "camera_running": false,
+      "message": "camera pipeline opening in background",
+      "status": "starting"
+    },
+    "status_after_start": {
+      "camera_opened": true,
+      "camera_running": true
+    },
+    "feed_bytes": 32768
+  },
+  {
+    "cycle": 2,
+    "stop_response": {
+      "camera_running": false,
+      "status": "ok"
+    },
+    "status_after_stop": {
+      "camera_opened": false,
+      "camera_running": false
+    },
+    "feed_status_stopped": 200,
+    "start_response": {
+      "camera_running": false,
+      "message": "camera pipeline opening in background",
+      "status": "starting"
+    },
+    "status_after_start": {
+      "camera_opened": true,
+      "camera_running": true
+    },
+    "feed_bytes": 32768
+  },
+  {
+    "cycle": 3,
+    "stop_response": {
+      "camera_running": false,
+      "status": "ok"
+    },
+    "status_after_stop": {
+      "camera_opened": false,
+      "camera_running": false
+    },
+    "feed_status_stopped": 200,
+    "start_response": {
+      "camera_running": false,
+      "message": "camera pipeline opening in background",
+      "status": "starting"
+    },
+    "status_after_start": {
+      "camera_opened": true,
+      "camera_running": true
+    },
+    "feed_bytes": 32768
+  },
+  {
+    "cycle": 4,
+    "stop_response": {
+      "camera_running": false,
+      "status": "ok"
+    },
+    "status_after_stop": {
+      "camera_opened": false,
+      "camera_running": false
+    },
+    "feed_status_stopped": 200,
+    "start_response": {
+      "camera_running": false,
+      "message": "camera pipeline opening in background",
+      "status": "starting"
+    },
+    "status_after_start": {
+      "camera_opened": true,
+      "camera_running": true
+    },
+    "feed_bytes": 32768
+  },
+  {
+    "cycle": 5,
+    "stop_response": {
+      "camera_running": false,
+      "status": "ok"
+    },
+    "status_after_stop": {
+      "camera_opened": false,
+      "camera_running": false
+    },
+    "feed_status_stopped": 200,
+    "start_response": {
+      "camera_running": false,
+      "message": "camera pipeline opening in background",
+      "status": "starting"
+    },
+    "status_after_start": {
+      "camera_opened": true,
+      "camera_running": true
+    },
+    "feed_bytes": 32768
+  },
+  {
+    "cycle": 6,
+    "stop_response": {
+      "camera_running": false,
+      "status": "ok"
+    },
+    "status_after_stop": {
+      "camera_opened": false,
+      "camera_running": false
+    },
+    "feed_status_stopped": 200,
+    "start_response": {
+      "camera_running": false,
+      "message": "camera pipeline opening in background",
+      "status": "starting"
+    },
+    "status_after_start": {
+      "camera_opened": true,
+      "camera_running": true
+    },
+    "feed_bytes": 32768
+  },
+  {
+    "cycle": 7,
+    "stop_response": {
+      "camera_running": false,
+      "status": "ok"
+    },
+    "status_after_stop": {
+      "camera_opened": false,
+      "camera_running": false
+    },
+    "feed_status_stopped": 200,
+    "start_response": {
+      "camera_running": false,
+      "message": "camera pipeline opening in background",
+      "status": "starting"
+    },
+    "status_after_start": {
+      "camera_opened": true,
+      "camera_running": true
+    },
+    "feed_bytes": 32768
+  },
+  {
+    "cycle": 8,
+    "stop_response": {
+      "camera_running": false,
+      "status": "ok"
+    },
+    "status_after_stop": {
+      "camera_opened": false,
+      "camera_running": false
+    },
+    "feed_status_stopped": 200,
+    "start_response": {
+      "camera_running": false,
+      "message": "camera pipeline opening in background",
+      "status": "starting"
+    },
+    "status_after_start": {
+      "camera_opened": true,
+      "camera_running": true
+    },
+    "feed_bytes": 32768
+  },
+  {
+    "cycle": 9,
+    "stop_response": {
+      "camera_running": false,
+      "status": "ok"
+    },
+    "status_after_stop": {
+      "camera_opened": false,
+      "camera_running": false
+    },
+    "feed_status_stopped": 200,
+    "start_response": {
+      "camera_running": false,
+      "message": "camera pipeline opening in background",
+      "status": "starting"
+    },
+    "status_after_start": {
+      "camera_opened": true,
+      "camera_running": true
+    },
+    "feed_bytes": 32768
+  },
+  {
+    "cycle": 10,
+    "stop_response": {
+      "camera_running": false,
+      "status": "ok"
+    },
+    "status_after_stop": {
+      "camera_opened": false,
+      "camera_running": false
+    },
+    "feed_status_stopped": 200,
+    "start_response": {
+      "camera_running": false,
+      "message": "camera pipeline opening in background",
+      "status": "starting"
+    },
+    "status_after_start": {
+      "camera_opened": true,
+      "camera_running": true
+    },
+    "feed_bytes": 32768
+  }
+]
