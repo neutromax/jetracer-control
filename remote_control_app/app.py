@@ -35,6 +35,12 @@ def index():
         return redirect(url_for('login'))
     return render_template('index.html', ip_address=session['ip_address'])
 
+@app.route('/mobile')
+def mobile():
+    """Mobile-optimised controller interface."""
+    ip_address = session.get('ip_address', '')
+    return render_template('mobile.html', ip_address=ip_address)
+
 # ── Video stream proxy ─────────────────────────────────────────────────────────
 
 @app.route('/video_feed')

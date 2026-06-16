@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0d0d0d">
+    <title>JETRACER · MOBILE COMMAND</title>
+    <meta name="description" content="JetRacer mobile controller — professional racing dashboard for real-time RC vehicle control">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/mobile.css') }}?v=3">
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════
+     CONNECT SCREEN (shown first)
+═══════════════════════════════════════════════════════════ -->
+<div id="screenConnect" class="screen screen-connect active">
+    <div class="connect-bg-grid"></div>
+    <div class="connect-content">
+        <div class="connect-logo-ring">
+            <div class="logo-pulse-outer"></div>
+            <div class="logo-pulse-inner"></div>
+            <i class="fas fa-car-side connect-logo-icon"></i>
+        </div>
+        <h1 class="connect-title">JETRACER</h1>
+        <p class="connect-subtitle">MOBILE COMMAND CENTER</p>
+        <div class="connect-card">
+            <div class="input-field-group">
+                <label class="input-label"><i class="fas fa-network-wired"></i> VEHICLE IP ADDRESS</label>
+                <div class="input-row">
+                    <input type="text" id="connectIpInput" class="ip-input" 
+                           placeholder="192.168.1.100" 
+                           value="{{ ip_address if ip_address else '' }}"
+                           inputmode="decimal"
+                           autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+                    <div class="input-indicator" id="connectIndicator"></div>
+                </div>
+            </div>
+            <button id="btnConnect" class="btn-primary" onclick="initiateConnection()">
+                <i class="fas fa-plug"></i>
+                <span>ESTABLISH UPLINK</span>
+            </button>
+            <button id="btnDemo" class="btn-demo" onclick="enterDemoMode()">
+                <i class="fas fa-flask"></i>
+                <span>DEMO MODE — No Device</span>
+            </button>
+            <div id="connectStatus" class="connect-status-msg"></div>
+        </div>
+        <div class="connect-footer-links">
+            <a href="/" class="footer-link"><i class="fas fa-desktop"></i> Desktop View</a>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MAIN CONTROLLER SCREEN
+═══════════════════════════════════════════════════════════ -->
+<div id="screenController" class="screen screen-controller">
+
+    <!-- DEMO MODE BANNER -->
+    <div id="demoBanner" class="demo-banner" style="display:none;">
+        <i class="fas fa-flask"></i>
+        <span>DEMO MODE — No vehicle connected. Controls are simulated.</span>
+        <button onclick="exitDemoMode()" class="demo-exit-btn"><i class="fas fa-times"></i></button>
+    </div>
+
+    <!-- TOP: Camera Feed -->
+    <div class="camera-section" id="cameraSection">
+        <img id="mobileStream" class="camera-stream" src="" alt="Camera Feed"
+             onerror="handleStreamError()">
+        <div id="cameraOffOverlay" class="camera-off-overlay">
+            <i class="fas fa-video-slash"></i>
+            <span>CAMERA OFFLINE</span>
+        </div>
+        <!-- Camera HUD overlay -->
+        <div class="camera-hud">
+            <!-- Top-left: connection + latency -->
+            <div class="hud-topleft">
+                <div class="hud-pill" id="hudConnStatus">
+                    <span class="status-dot" id="hudStatusDot"></span>
+                    <span id="hudStatusText">CONNECTED</span>
+                </div>
+                <div class="hud-pill hud-ping">
+                    <i class="fas fa-wifi"></i>
+                    <span id="hudLatency">--</span><span class="unit">ms</span>
+                </div>
+            </div>
+            <!-- Top-right: battery + signal -->
+            <div class="hud-topright">
+                <div class="hud-pill">
+                    <i class="fas fa-battery-three-quarters" id="hudBattIcon"></i>
+                    <span id="hudBattery">--</span><span class="unit">%</span>
+                </div>
+                <div class="hud-pill">
+                    <i class="fas fa-signal" id="hudWifiIcon"></i>
+                </div>
+            </div>
+            <!-- Reticle -->
+            <div class="camera-reticle">
+                <div class="reticle-corner tl"></div>
+                <div class="reticle-corner tr"></div>
+                <div class="reticle-corner bl"></div>
+                <div class="reticle-corner br"></div>
+                <div class="reticle-dot"></div>
+            </div>
+            <!-- Bottom IP label -->
+            <div class="hud-bottom-row">
+                <span class="hud-ip" id="hudIpLabel">IP: --</span>
+                <button class="btn-icon-sm" id="btnFullscreen" onclick="toggleFullscreen()" title="Fullscreen">
+                    <i class="fas fa-expand"></i>
+                </button>
+                <button class="btn-icon-sm btn-cam-toggle" id="btnCamToggle" onclick="toggleCamera()" title="Toggle Camera">
+                    <i class="fas fa-video" id="camToggleIcon"></i>
+                </button>
+            </div>
+        </div>
+        <!-- Scan line animation -->
+        <div class="camera-scanline"></div>
+    </div>
+
+    <!-- CONTROL ZONE -->
+    <div class="control-zone">
+
+        <!-- LEFT: Joystick -->
+        <div class="joystick-zone" id="joystickZone">
+            <div class="joystick-label-top">FWD</div>
+            <div class="joystick-label-left">L</div>
+            <div class="joystick-label-right">R</div>
+            <div class="joystick-label-bottom">REV</div>
+            <canvas id="mobileJoystick" class="joystick-canvas"></canvas>
+            <div class="joystick-coords" id="joystickCoords">X:0 Y:0</div>
+        </div>
+
+        <!-- CENTER: Speed + Mode indicator -->
+        <div class="center-panel">
+            <div class="speed-display">
+                <div class="speed-arc-outer"></div>
+                <div class="speed-value-wrap">
+                    <div class="speed-number" id="mobileSpeed">0.0</div>
+                    <div class="speed-unit-label">m/s</div>
+                </div>
+            </div>
+            <div class="drive-mode-badge" id="driveModeBadge">NORMAL</div>
+            <div class="center-mini-stats">
+                <div class="mini-stat">
+                    <span class="mini-label">CPU</span>
+                    <span class="mini-value" id="statCpu">--°</span>
+                </div>
+                <div class="mini-stat">
+                    <span class="mini-label">SYS</span>
+                    <span class="mini-value" id="statSys" style="color: var(--accent-green)">OK</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT: Action buttons -->
+        <div class="right-panel">
+            <!-- Settings -->
+            <button class="btn-action" id="btnSettings" onclick="openSettings()">
+                <i class="fas fa-sliders-h"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- BOTTOM STATUS BAR -->
+    <div class="status-bar" style="display: none;">
+        <div class="status-item">
+            <i class="fas fa-thermometer-half"></i>
+            <span id="sbTemp">--°C</span>
+        </div>
+        <div class="status-item">
+            <i class="fas fa-memory"></i>
+            <span id="sbRam">-- GB</span>
+        </div>
+        <div class="status-item">
+            <i class="fas fa-tachometer-alt"></i>
+            <span id="sbLimiter">LIM: 50%</span>
+        </div>
+        <div class="status-item status-item-log" id="statusLogItem">
+            <i class="fas fa-terminal"></i>
+            <span id="sbLastLog">SYSTEM READY</span>
+        </div>
+    </div>
+
+</div><!-- /screenController -->
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     SETTINGS DRAWER
+═══════════════════════════════════════════════════════════ -->
+<div id="settingsDrawer" class="settings-drawer" aria-hidden="true">
+    <div class="drawer-backdrop" onclick="closeSettings()"></div>
+    <div class="drawer-panel">
+        <div class="drawer-header">
+            <div class="drawer-title"><i class="fas fa-sliders-h"></i> SYSTEM CONFIGURATION</div>
+            <button class="drawer-close" onclick="closeSettings()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="drawer-body" id="drawerBody">
+
+            <!-- ── 1. CONNECTION ── -->
+            <div class="settings-section">
+                <div class="settings-section-header" onclick="toggleSection('secConnection')">
+                    <span><i class="fas fa-plug"></i> CONNECTION</span>
+                    <i class="fas fa-chevron-down toggle-arrow" id="arrowConnection"></i>
+                </div>
+                <div class="settings-section-body open" id="secConnection">
+                    <div class="setting-row">
+                        <label class="setting-label">JetRacer IP</label>
+                        <input type="text" id="settingIp" class="setting-input" placeholder="192.168.1.100"
+                               inputmode="decimal" autocomplete="off">
+                    </div>
+                    <div class="setting-row setting-row-btns">
+                        <button class="btn-setting-action btn-green" onclick="reconnectToIp()">
+                            <i class="fas fa-plug"></i> RECONNECT
+                        </button>
+                        <button class="btn-setting-action btn-red" onclick="disconnectFromVehicle()">
+                            <i class="fas fa-unlink"></i> DISCONNECT
+                        </button>
+                    </div>
+                    <div class="setting-row setting-row-toggle">
+                        <label class="setting-label">Auto-Reconnect</label>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="settingAutoReconnect" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="setting-row">
+                        <label class="setting-label">Connection Status</label>
+                        <span class="setting-value" id="settingConnStatus">CONNECTED</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── 2. DRIVING ── -->
+            <div class="settings-section">
+                <div class="settings-section-header" onclick="toggleSection('secDriving')">
+                    <span><i class="fas fa-gamepad"></i> DRIVING</span>
+                    <i class="fas fa-chevron-down toggle-arrow" id="arrowDriving"></i>
+                </div>
+                <div class="settings-section-body" id="secDriving">
+                    <div class="setting-row">
+                        <label class="setting-label">Speed Limit</label>
+                        <div class="slider-wrap">
+                            <input type="range" id="settingSpeedLimit" class="setting-slider" min="0" max="100" value="50">
+                            <span class="slider-val" id="valSpeedLimit">50%</span>
+                        </div>
+                    </div>
+                    <div class="setting-row">
+                        <label class="setting-label">Steering Sensitivity</label>
+                        <div class="slider-wrap">
+                            <input type="range" id="settingSteering" class="setting-slider" min="10" max="200" value="100">
+                            <span class="slider-val" id="valSteering">100%</span>
+                        </div>
+                    </div>
+                    <div class="setting-row">
+                        <label class="setting-label">Steering Trim</label>
+                        <div class="slider-wrap">
+                            <input type="range" id="settingTrim" class="setting-slider" min="-100" max="100" value="0">
+                            <span class="slider-val" id="valTrim">0</span>
+                        </div>
+                    </div>
+                    <div class="setting-row">
+                        <label class="setting-label">Drive Mode</label>
+                        <div class="mode-selector">
+                            <button class="mode-btn" data-mode="Precision" onclick="setDriveMode(this)">PRECISION</button>
+                            <button class="mode-btn active" data-mode="Normal" onclick="setDriveMode(this)">NORMAL</button>
+                            <button class="mode-btn" data-mode="Sport" onclick="setDriveMode(this)">SPORT</button>
+                        </div>
+                    </div>
+                    <div class="setting-row setting-row-toggle">
+                        <label class="setting-label">Enable Autopilot</label>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="settingAutopilot" onchange="toggleAutopilot()">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── 3. SAFETY ── -->
+            <div class="settings-section">
+                <div class="settings-section-header" onclick="toggleSection('secSafety')">
+                    <span><i class="fas fa-shield-alt"></i> SAFETY</span>
+                    <i class="fas fa-chevron-down toggle-arrow" id="arrowSafety"></i>
+                </div>
+                <div class="settings-section-body" id="secSafety">
+                    <div class="setting-row setting-row-toggle">
+                        <label class="setting-label">Auto-Stop on Disconnect</label>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="settingAutoStop" checked>
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="setting-row">
+                        <label class="setting-label">Emergency Stop</label>
+                        <button class="btn-setting-action btn-red btn-full" onclick="emergencyStop(); closeSettings();">
+                            <i class="fas fa-hand-paper"></i> TRIGGER E-STOP NOW
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── 4. CAMERA ── -->
+            <div class="settings-section">
+                <div class="settings-section-header" onclick="toggleSection('secCamera')">
+                    <span><i class="fas fa-camera"></i> CAMERA</span>
+                    <i class="fas fa-chevron-down toggle-arrow" id="arrowCamera"></i>
+                </div>
+                <div class="settings-section-body" id="secCamera">
+                    <div class="setting-row">
+                        <label class="setting-label">Resolution</label>
+                        <select id="settingResolution" class="setting-select">
+                            <option value="320x240">320 × 240</option>
+                            <option value="640x480" selected>640 × 480</option>
+                            <option value="1280x720">1280 × 720</option>
+                        </select>
+                    </div>
+                    <div class="setting-row">
+                        <label class="setting-label">Frame Rate</label>
+                        <select id="settingFps" class="setting-select">
+                            <option value="15">15 FPS</option>
+                            <option value="30" selected>30 FPS</option>
+                            <option value="60">60 FPS</option>
+                        </select>
+                    </div>
+                    <div class="setting-row setting-row-toggle">
+                        <label class="setting-label">Mirror Camera</label>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="settingMirror">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="setting-row setting-row-btns">
+                        <button class="btn-setting-action btn-green btn-full" onclick="toggleCamera()">
+                            <i class="fas fa-video" id="camSettingIcon"></i>
+                            <span id="camSettingLabel">CAMERA ON</span>
+                        </button>
+                    </div>
+                    <div class="setting-row setting-row-btns">
+                        <button class="btn-setting-action btn-outline btn-full" onclick="captureFrameMobile()">
+                            <i class="fas fa-camera"></i> CAPTURE CURRENT FRAME
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── 5. TELEMETRY ── -->
+            <div class="settings-section">
+                <div class="settings-section-header" onclick="toggleSection('secTelemetry')">
+                    <span><i class="fas fa-chart-line"></i> TELEMETRY</span>
+                    <i class="fas fa-chevron-down toggle-arrow" id="arrowTelemetry"></i>
+                </div>
+                <div class="settings-section-body" id="secTelemetry">
+                    <div class="telemetry-grid">
+                        <div class="telemetry-item">
+                            <div class="telem-icon"><i class="fas fa-battery-full"></i></div>
+                            <div class="telem-label">BATTERY</div>
+                            <div class="telem-value" id="telemBattery">--%</div>
+                        </div>
+                        <div class="telemetry-item">
+                            <div class="telem-icon"><i class="fas fa-thermometer-half"></i></div>
+                            <div class="telem-label">CPU TEMP</div>
+                            <div class="telem-value" id="telemTemp">--°C</div>
+                        </div>
+                        <div class="telemetry-item">
+                            <div class="telem-icon"><i class="fas fa-memory"></i></div>
+                            <div class="telem-label">RAM</div>
+                            <div class="telem-value" id="telemRam">-- GB</div>
+                        </div>
+                        <div class="telemetry-item">
+                            <div class="telem-icon"><i class="fas fa-wifi"></i></div>
+                            <div class="telem-label">WIFI</div>
+                            <div class="telem-value" id="telemWifi">--%</div>
+                        </div>
+                        <div class="telemetry-item">
+                            <div class="telem-icon"><i class="fas fa-clock"></i></div>
+                            <div class="telem-label">LATENCY</div>
+                            <div class="telem-value" id="telemLatency">-- ms</div>
+                        </div>
+                        <div class="telemetry-item">
+                            <div class="telem-icon"><i class="fas fa-server"></i></div>
+                            <div class="telem-label">SYSTEM</div>
+                            <div class="telem-value" id="telemSys" style="color:var(--accent-green)">OK</div>
+                        </div>
+                    </div>
+                    <button class="btn-setting-action btn-outline btn-full" onclick="refreshTelemetry()">
+                        <i class="fas fa-sync-alt"></i> REFRESH TELEMETRY
+                    </button>
+                </div>
+            </div>
+
+        <!-- ── 5.5. SYSTEM LOGS ── -->
+        <div class="settings-section">
+            <div class="settings-section-header" onclick="toggleSection('secLogs')">
+                <span><i class="fas fa-terminal"></i> SYSTEM LOGS</span>
+                <i class="fas fa-chevron-down toggle-arrow" id="arrowLogs"></i>
+            </div>
+            <div class="settings-section-body" id="secLogs">
+                <div id="mobileLogList" class="diag-output" style="max-height: 200px; display: block; font-family: var(--font-mono); font-size: 10px; background: #000; padding: 10px; overflow-y: auto; margin: 8px 20px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); color: #ccc;">
+                    <!-- Live logs will be populated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- ── 6. ADVANCED ── -->
+            <div class="settings-section">
+                <div class="settings-section-header" onclick="toggleSection('secAdvanced')">
+                    <span><i class="fas fa-cog"></i> ADVANCED</span>
+                    <i class="fas fa-chevron-down toggle-arrow" id="arrowAdvanced"></i>
+                </div>
+                <div class="settings-section-body" id="secAdvanced">
+                    <div class="setting-row setting-row-toggle">
+                        <label class="setting-label">Debug Mode</label>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="settingDebug">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="setting-row">
+                        <label class="setting-label">WS Update Rate</label>
+                        <select id="settingWsRate" class="setting-select">
+                            <option value="50">50 ms (Fast)</option>
+                            <option value="100" selected>100 ms (Normal)</option>
+                            <option value="200">200 ms (Slow)</option>
+                        </select>
+                    </div>
+                    <div class="setting-row setting-row-btns">
+                        <button class="btn-setting-action btn-outline" onclick="calibrateJoystick()">
+                            <i class="fas fa-crosshairs"></i> CALIBRATE
+                        </button>
+                        <button class="btn-setting-action btn-outline" onclick="runDiagnostics()">
+                            <i class="fas fa-stethoscope"></i> DIAGNOSTICS
+                        </button>
+                    </div>
+                    <div id="diagnosticsOutput" class="diag-output" style="display:none;"></div>
+                </div>
+            </div>
+
+            <!-- ── FUTURE FEATURES ── -->
+            <div class="settings-section">
+                <div class="settings-section-header" onclick="toggleSection('secFuture')">
+                    <span><i class="fas fa-rocket"></i> FUTURE FEATURES</span>
+                    <i class="fas fa-chevron-down toggle-arrow" id="arrowFuture"></i>
+                </div>
+                <div class="settings-section-body" id="secFuture">
+                    <div class="future-grid">
+                        <div class="future-item disabled">
+                            <i class="fas fa-eye"></i>
+                            <span>Object Detection</span>
+                            <span class="future-badge">SOON</span>
+                        </div>
+                        <div class="future-item disabled">
+                            <i class="fas fa-robot"></i>
+                            <span>Autonomous Drive</span>
+                            <span class="future-badge">SOON</span>
+                        </div>
+                        <div class="future-item disabled">
+                            <i class="fas fa-walking"></i>
+                            <span>Follow-Me Mode</span>
+                            <span class="future-badge">SOON</span>
+                        </div>
+                        <div class="future-item disabled">
+                            <i class="fas fa-record-vinyl"></i>
+                            <span>Video Record</span>
+                            <span class="future-badge">SOON</span>
+                        </div>
+                        <div class="future-item disabled">
+                            <i class="fas fa-brain"></i>
+                            <span>AI Assistance</span>
+                            <span class="future-badge">SOON</span>
+                        </div>
+                        <div class="future-item disabled">
+                            <i class="fas fa-screenshot"></i>
+                            <span>Screenshot</span>
+                            <span class="future-badge">SOON</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- /drawer-body -->
+
+        <div class="drawer-footer">
+            <a href="/" class="btn-setting-action btn-outline">
+                <i class="fas fa-desktop"></i> DESKTOP VIEW
+            </a>
+            <button class="btn-setting-action btn-red" onclick="powerOff()">
+                <i class="fas fa-power-off"></i> POWER OFF
+            </button>
+        </div>
+
+    </div>
+</div><!-- /settingsDrawer -->
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     TOAST NOTIFICATIONS
+═══════════════════════════════════════════════════════════ -->
+<div id="toastContainer" class="toast-container"></div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     ESTOP CONFIRMATION FLASH
+═══════════════════════════════════════════════════════════ -->
+<div id="estopFlash" class="estop-flash" aria-live="assertive"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+<script src="{{ url_for('static', filename='js/mobile.js') }}?v=4"></script>
+
+</body>
+</html>

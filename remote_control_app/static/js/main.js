@@ -327,14 +327,26 @@ function renderLogEntry(entry) {
 
 async function fetchNewLogs() {
     try {
+        // Always fetch from index 0; server returns {total, entries[since..]}
+        // But the server buffer is circular (max 100), so 'total' can reset.
+        // We ask for entries since our last known total; if total went backwards
+        // (buffer wrapped) we clear the list and start fresh.
         const r = await fetch(`/logs?since=${logsNextIndex}`);
+        if (!r.ok) return;
         const data = await r.json();
-        if (data.entries && data.entries.length > 0) {
+        if (!data || !Array.isArray(data.entries)) return;
+
+        // Detect buffer wrap-around: total decreased → reset display
+        if (data.total < logsNextIndex) {
+            fullLogList.innerHTML = '';
+            logsNextIndex = 0;
+        }
+
+        if (data.entries.length > 0) {
             data.entries.forEach(entry => {
                 fullLogList.appendChild(renderLogEntry(entry));
             });
-            logsNextIndex = data.total;  // advance cursor to end
-            // Auto-scroll to bottom
+            logsNextIndex = data.total;   // advance cursor to end of known entries
             fullLogList.scrollTop = fullLogList.scrollHeight;
         }
     } catch (err) {
@@ -343,8 +355,8 @@ async function fetchNewLogs() {
 }
 
 function startLogPolling() {
-    if (logsInterval) return;         // already polling
-    fetchNewLogs();                   // immediate first load
+    if (logsInterval) return;
+    fetchNewLogs();
     logsInterval = setInterval(fetchNewLogs, 2000);
 }
 
@@ -354,6 +366,7 @@ function stopLogPolling() {
 
 // Start polling immediately so logs accumulate in background
 startLogPolling();
+
 
 // ── Autonomous toggle ──────────────────────────────────────────────────────────
 // Autonomous toggle

@@ -328,7 +328,7 @@ body {
     display: flex;
     gap: 16px;
     align-items: flex-end;
-    flex-wrap: wrap; /* Prevent HUD elements from overflowing horizontally */
+    flex-wrap: nowrap; /* Prevent speedometer from pushing camera button to next line */
 }
 
 .hud-box {
@@ -412,7 +412,9 @@ body {
 .speed-box {
     margin-left: auto;
     text-align: center;
-    padding: 24px 32px;
+    padding: 24px 8px;
+    flex-shrink: 0;       /* never compress */
+    min-width: 150px;     /* fixed width so negative values never cause reflow */
 }
 
 .speed-value {
@@ -422,6 +424,7 @@ body {
     color: var(--accent-green);
     line-height: 1;
     text-shadow: 0 0 20px rgba(164, 227, 38, 0.4);
+    white-space: nowrap;  /* never wrap -0.6 onto two lines */
 }
 
 .speed-unit {
@@ -750,7 +753,7 @@ canvas#joystickCanvas:active {
 /* 1.5. Desktop/Tablet Transition (1024px and down) */
 @media (max-width: 1024px) {
     .hud-bottom {
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
         gap: 8px;
     }
     .gpu-box, .battery-box {
@@ -762,6 +765,7 @@ canvas#joystickCanvas:active {
     }
     .camera-toggle-box {
         margin-left: 8px;
+        flex-shrink: 0;
     }
 }
 

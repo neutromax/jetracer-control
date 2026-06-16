@@ -37,3 +37,4 @@ instance/
 scratch_*.py
 test_*.py
 cam_test_results.json
+remote_control_app/gallery/

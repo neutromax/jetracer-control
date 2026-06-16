@@ -123,13 +123,16 @@ state = {
 }
 state_lock = threading.Lock()
 system_logs = []
+total_logs_count = 0
 logs_lock = threading.Lock()
 
 def log(tag, msg):
+    global total_logs_count
     ts = time.strftime("%H:%M:%S")
     entry = {"time": ts, "tag": tag, "msg": msg}
     with logs_lock:
         system_logs.append(entry)
+        total_logs_count += 1
         if len(system_logs) > 100:
             system_logs.pop(0)
     print(f"[{ts}] [{tag}] {msg}")
@@ -461,9 +464,14 @@ def get_logs():
     except (ValueError, TypeError):
         since = 0
     with logs_lock:
-        total = len(system_logs)
-        entries = system_logs[since:] if since < total else []
-        result = [{"index": since + i, "time": e["time"], "tag": e["tag"], "msg": e["msg"]}
+        total = total_logs_count
+        start_abs_idx = total - len(system_logs)
+        if since < start_abs_idx:
+            slice_start = 0
+        else:
+            slice_start = since - start_abs_idx
+        entries = system_logs[slice_start:]
+        result = [{"index": start_abs_idx + slice_start + i, "time": e["time"], "tag": e["tag"], "msg": e["msg"]}
                   for i, e in enumerate(entries)]
     return jsonify({"total": total, "entries": result})
 
