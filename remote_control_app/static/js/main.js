@@ -649,14 +649,6 @@ async function refreshWifiStatus() {
             ssid.style.color = '#eee';
             ip.textContent   = d.ip || '--';
             sig.textContent  = d.signal + '%';
-            
-            const hudIP = document.getElementById('hudConnectionIP');
-            const hudStatus = document.getElementById('hudConnectionStatus');
-            if (hudIP) hudIP.textContent = 'IP: ' + (d.ip || '--');
-            if (hudStatus) {
-                hudStatus.textContent = 'CONNECTED';
-                hudStatus.style.color = 'var(--accent-green)';
-            }
         } else {
             dot.style.background = '#f87171';
             dot.style.boxShadow  = 'none';
@@ -664,14 +656,6 @@ async function refreshWifiStatus() {
             ssid.style.color = '#f87171';
             ip.textContent   = '--';
             sig.textContent  = '--%';
-            
-            const hudIP = document.getElementById('hudConnectionIP');
-            const hudStatus = document.getElementById('hudConnectionStatus');
-            if (hudIP) hudIP.textContent = 'IP: --';
-            if (hudStatus) {
-                hudStatus.textContent = 'DISCONNECTED';
-                hudStatus.style.color = '#f87171';
-            }
         }
     } catch (e) {
         console.warn('[WIFI] Status poll failed:', e.message);
