@@ -47,19 +47,21 @@ if (_btnArm) _btnArm.addEventListener('click', () => sendCommand('SYSTEM_ARM'));
 else console.warn('[MAIN.JS] ⚠ btnArm NOT FOUND');
 
 // Sliders
-const speedLimiter = document.getElementById('speedLimiter');
-speedLimiter.addEventListener('change', (e) => sendCommand('LIMITER', e.target.value));
+const steeringOffset = document.getElementById('steeringOffset');
+steeringOffset.addEventListener('change', (e) => sendCommand('STEERING_OFFSET', e.target.value));
 
-const steeringTrim = document.getElementById('steeringTrim');
-steeringTrim.addEventListener('change', (e) => sendCommand('TRIM', e.target.value));
+const steeringGain = document.getElementById('steeringGain');
+steeringGain.addEventListener('change', (e) => sendCommand('STEERING_GAIN', e.target.value));
 
-document.getElementById('btnTrimLeft').addEventListener('click', () => {
-    steeringTrim.value = Math.max(parseInt(steeringTrim.value) - 5, -100);
-    sendCommand('TRIM', steeringTrim.value);
+document.getElementById('btnGainDown').addEventListener('click', () => {
+    const val = Math.max(0.50, Math.min(2.50, parseFloat(steeringGain.value) - 0.05));
+    steeringGain.value = val.toFixed(2);
+    sendCommand('STEERING_GAIN', steeringGain.value);
 });
-document.getElementById('btnTrimRight').addEventListener('click', () => {
-    steeringTrim.value = Math.min(parseInt(steeringTrim.value) + 5, 100);
-    sendCommand('TRIM', steeringTrim.value);
+document.getElementById('btnGainUp').addEventListener('click', () => {
+    const val = Math.max(0.50, Math.min(2.50, parseFloat(steeringGain.value) + 0.05));
+    steeringGain.value = val.toFixed(2);
+    sendCommand('STEERING_GAIN', steeringGain.value);
 });
 
 // Joystick
@@ -164,8 +166,8 @@ function updateJoystick(e) {
     if (dir !== currentDirection) {
         currentDirection = dir;
         sendCommand('MOVE', dir);
-        if(dir === 'UP') valSpeed.innerText = (1.2 * (speedLimiter.value/100)).toFixed(1);
-        else if(dir === 'DOWN') valSpeed.innerText = (-0.5 * (speedLimiter.value/100)).toFixed(1);
+        if(dir === 'UP') valSpeed.innerText = (1.2 * 0.8).toFixed(1);
+        else if(dir === 'DOWN') valSpeed.innerText = (-0.5 * 0.8).toFixed(1);
         else valSpeed.innerText = '0.0';
     }
 }
@@ -865,3 +867,21 @@ navLinksGallery.forEach(link => {
         }
     });
 });
+
+// --- Mobile Uplink QR Modal Trigger ---
+const btnShowMobileQR = document.getElementById('btnShowMobileQR');
+if (btnShowMobileQR) {
+    btnShowMobileQR.addEventListener('click', () => {
+        document.getElementById('mobileQRModal').style.display = 'flex';
+    });
+}
+
+// --- Real-time Gallery Synchronization ---
+const mainSocket = io();
+mainSocket.on('gallery_updated', () => {
+    console.log('[SOCKET] Gallery update event received');
+    const gallerySection = document.getElementById('section-gallery');
+    if (gallerySection && gallerySection.style.display !== 'none') {
+        loadGallery();
+    }
+});

@@ -28,9 +28,9 @@ const State = {
     autoReconnect: true,
     autoStop: true,
     driveMode: 'Normal',
-    speedLimit: 50,         // 0–100
+    steeringGain: 1.66,       // persisted from server
+    steeringOffset: 0.43,     // persisted from server
     steeringSensitivity: 100,
-    steeringTrim: 0,
     mirrorCamera: false,
     wsUpdateRate: 100,      // ms
     debugMode: false,
@@ -126,8 +126,9 @@ async function initiateConnection() {
     try {
         // Try to reach the proxy ping endpoint
         const t0 = performance.now();
-        const res = await fetch('/ping_jetracer', { signal: AbortSignal.timeout(5000) });
+        const res = await fetch(`/ping_jetracer?ip=${encodeURIComponent(ip)}`, { signal: AbortSignal.timeout(5000) });
         const data = await res.json();
+
         const elapsed = Math.round(performance.now() - t0);
 
         if (data.reachable) {
@@ -138,13 +139,16 @@ async function initiateConnection() {
             State.lastLatency = elapsed;
             State.reconnectAttempts = 0;
 
-            // Save IP to server session via /login form submit approach
-            await fetch('/login', {
+            // Save IP to server session — use /set_ip which returns JSON
+            // (avoids mobile browser cookie issues with redirect-based /login)
+            await fetch('/set_ip', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: `ip_address=${encodeURIComponent(ip)}`,
-                redirect: 'manual'
+                body: `ip_address=${encodeURIComponent(ip)}`
             });
+
+            // Save IP persistently in localStorage to survive browser/session restarts
+            localStorage.setItem('jetracer_ip', ip);
 
             setTimeout(() => transitionToController(), 500);
         } else {
@@ -613,10 +617,12 @@ async function sendCommand(cmd, value = null) {
 // Analog drive via /drive endpoint (lower latency, float precision)
 async function sendAnalog() {
     if (!State.connected) return;
-    // Map joystick axes to throttle/steering
-    const throttle = -State.currentY * (State.speedLimit / 100);
+    // Map joystick Y → throttle (raw), X → steering (raw * sensitivity only).
+    // Gain and offset calibration is applied by the JetRacer library on the vehicle
+    // (car.steering_gain / car.steering_offset set by jetracer_server.py drive_loop).
+    const throttle = -State.currentY;
     const sensitivity = State.steeringSensitivity / 100;
-    const steering = State.currentX * sensitivity + (State.steeringTrim / 100);
+    const steering = State.currentX * sensitivity;   // raw, no gain/offset here
 
     const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
     const t = clamp(throttle, -1, 1);
@@ -633,8 +639,9 @@ async function sendAnalog() {
     if (State.demoMode) return;   // ← skip real network call in demo
     try {
         const fd = new FormData();
-        fd.append('throttle', t.toFixed(3));
+        fd.append('x', s.toFixed(3));
         fd.append('steering', s.toFixed(3));
+        fd.append('throttle', t.toFixed(3));
         await fetch('/drive', {
             method: 'POST',
             body: fd,
@@ -705,6 +712,67 @@ function stopTelemetryPolling() {
     }
 }
 
+/* ── Auto-Reconnect ─────────────────────────────────────────
+   Attempts to re-ping JetRacer and restore the server session.
+   Called by the exponential backoff timer or visibilitychange.
+──────────────────────────────────────────────────────────── */
+let _reconnectBackoffTimer = null;
+
+async function attemptReconnect() {
+    if (!State.ip || State.demoMode) return;
+    if (State.connected) return;  // already reconnected by another path
+
+    try {
+        const res = await fetch(
+            `/ping_jetracer?ip=${encodeURIComponent(State.ip)}`,
+            { signal: AbortSignal.timeout(5000) }
+        );
+        const data = await res.json();
+
+        if (data.reachable) {
+            // Re-save IP to server session so /command and /drive work again
+            await fetch('/set_ip', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `ip_address=${encodeURIComponent(State.ip)}`
+            });
+
+            // Reset state
+            State.connected = true;
+            State.reconnectAttempts = 0;
+            _reconnectBackoffTimer = null;
+
+            updateConnectionUI(true);
+            mobileLog('AUTO-RECONNECTED TO ' + State.ip);
+            toast('Reconnected to ' + State.ip + ' ✓', 'success', 3000);
+
+            // Restart telemetry polling
+            startTelemetryPolling();
+        } else {
+            scheduleNextReconnect();
+        }
+    } catch (err) {
+        scheduleNextReconnect();
+    }
+}
+
+function scheduleNextReconnect() {
+    if (!State.autoReconnect || State.demoMode) return;
+    if (_reconnectBackoffTimer) return;  // already scheduled
+
+    // Exponential backoff: 2s, 4s, 8s, 15s cap — NEVER gives up
+    const attempt = State.reconnectAttempts;
+    const delayMs = Math.min(2000 * Math.pow(1.5, attempt), 15000);
+
+    mobileLog(`RECONNECT IN ${Math.round(delayMs / 1000)}s (attempt ${attempt + 1})…`);
+
+    _reconnectBackoffTimer = setTimeout(() => {
+        _reconnectBackoffTimer = null;
+        State.reconnectAttempts++;
+        attemptReconnect();
+    }, delayMs);
+}
+
 async function pollTelemetry() {
     if (!State.connected) return;
     try {
@@ -713,23 +781,63 @@ async function pollTelemetry() {
         const elapsed = Math.round(performance.now() - t0);
         updateLatency(elapsed);
         const data = await res.json();
+
+        // Reset reconnect counter on any successful poll
+        State.reconnectAttempts = 0;
         applyTelemetry(data);
+
     } catch (err) {
         if (State.debugMode) console.warn('[TELEM] poll failed:', err.message);
-        // Handle disconnect
-        if (State.connected) {
-            State.reconnectAttempts++;
-            if (State.autoReconnect && State.reconnectAttempts <= 5) {
-                updateConnectionUI(false, 'reconnecting');
-                mobileLog('RECONNECTING… attempt ' + State.reconnectAttempts);
-            } else if (State.reconnectAttempts > 5) {
-                updateConnectionUI(false);
-                mobileLog('CONNECTION LOST');
-                if (State.autoStop) sendStopCommand();
-            }
+        if (!State.connected) return;
+
+        // Mark as disconnected and start reconnect cycle
+        State.connected = false;
+        stopTelemetryPolling();
+        updateConnectionUI(false, 'reconnecting');
+        mobileLog('UPLINK LOST — starting auto-reconnect…');
+
+        if (State.autoStop) sendStopCommand();
+
+        if (State.autoReconnect) {
+            State.reconnectAttempts = 0;
+            scheduleNextReconnect();
+        } else {
+            updateConnectionUI(false);
+            mobileLog('AUTO-RECONNECT DISABLED — manual reconnect required');
         }
     }
 }
+
+/* ── Reconnect on phone unlock / tab becoming visible ──────────
+   When the user locks the screen or switches apps, the browser
+   suspends JS. On return, fire an immediate reconnect attempt
+   instead of waiting for the backoff timer.
+────────────────────────────────────────────────────────────── */
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') return;
+    if (!State.connected && State.ip && State.autoReconnect && !State.demoMode) {
+        // Cancel any pending backoff timer and reconnect immediately
+        if (_reconnectBackoffTimer) {
+            clearTimeout(_reconnectBackoffTimer);
+            _reconnectBackoffTimer = null;
+        }
+        mobileLog('APP RESUMED — attempting immediate reconnect…');
+        attemptReconnect();
+    }
+});
+
+/* ── Reconnect when WiFi comes back online ────────────────── */
+window.addEventListener('online', () => {
+    if (!State.connected && State.ip && State.autoReconnect && !State.demoMode) {
+        if (_reconnectBackoffTimer) {
+            clearTimeout(_reconnectBackoffTimer);
+            _reconnectBackoffTimer = null;
+        }
+        mobileLog('NETWORK RESTORED — attempting reconnect…');
+        attemptReconnect();
+    }
+});
+
 
 const LOG_TAG_COLORS = {
     BOOT:        '#a4e326',
@@ -920,12 +1028,14 @@ window.reconnectToIp = async function() {
     mobileLog('RECONNECTING TO ' + ip);
     toast('Reconnecting to ' + ip, 'info');
 
-    await fetch('/login', {
+    await fetch('/set_ip', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `ip_address=${encodeURIComponent(ip)}`,
-        redirect: 'manual'
+        body: `ip_address=${encodeURIComponent(ip)}`
     });
+
+    // Save IP persistently in localStorage
+    localStorage.setItem('jetracer_ip', ip);
 
     pollTelemetry();
     updateHudIp(ip);
@@ -941,29 +1051,42 @@ window.disconnectFromVehicle = function() {
     mobileLog('UPLINK TERMINATED');
 };
 
-/* Speed Limit slider */
-const settingSpeedLimit = document.getElementById('settingSpeedLimit');
-settingSpeedLimit.addEventListener('input', function() {
-    State.speedLimit = parseInt(this.value);
-    document.getElementById('valSpeedLimit').textContent = this.value + '%';
-    document.getElementById('sbLimiter').textContent = 'LIM: ' + this.value + '%';
-    sendCommand('LIMITER', this.value);
-});
+/* STEERING_GAIN slider */
+const settingSteeringGain = document.getElementById('settingSteeringGain');
+if (settingSteeringGain) {
+    // Init State from rendered default value
+    State.steeringGain = parseFloat(settingSteeringGain.value) || 1.66;
+    settingSteeringGain.addEventListener('input', function() {
+        State.steeringGain = parseFloat(this.value);
+        const display = parseFloat(this.value).toFixed(2);
+        document.getElementById('valSteeringGain').textContent = display;
+        document.getElementById('sbSteeringOffset').textContent = 'OFFSET: ' + State.steeringOffset.toFixed(2);
+        sendCommand('STEERING_GAIN', parseFloat(this.value).toFixed(2));
+    });
+}
+
+/* STEERING_OFFSET slider */
+const settingSteeringOffset = document.getElementById('settingSteeringOffset');
+if (settingSteeringOffset) {
+    // Init State from rendered default value
+    State.steeringOffset = parseFloat(settingSteeringOffset.value) || 0.43;
+    settingSteeringOffset.addEventListener('input', function() {
+        State.steeringOffset = parseFloat(this.value);
+        const display = parseFloat(this.value).toFixed(2);
+        document.getElementById('valSteeringOffset').textContent = display;
+        document.getElementById('sbSteeringOffset').textContent = 'OFFSET: ' + display;
+        sendCommand('STEERING_OFFSET', parseFloat(this.value).toFixed(2));
+    });
+}
 
 /* Steering Sensitivity slider */
 const settingSteering = document.getElementById('settingSteering');
-settingSteering.addEventListener('input', function() {
-    State.steeringSensitivity = parseInt(this.value);
-    document.getElementById('valSteering').textContent = this.value + '%';
-});
-
-/* Steering Trim slider */
-const settingTrim = document.getElementById('settingTrim');
-settingTrim.addEventListener('input', function() {
-    State.steeringTrim = parseInt(this.value);
-    document.getElementById('valTrim').textContent = this.value;
-    sendCommand('TRIM', this.value);
-});
+if (settingSteering) {
+    settingSteering.addEventListener('input', function() {
+        State.steeringSensitivity = parseInt(this.value);
+        document.getElementById('valSteering').textContent = this.value + '%';
+    });
+}
 
 /* Drive Mode */
 window.setDriveMode = function(btn) {
@@ -978,22 +1101,19 @@ window.setDriveMode = function(btn) {
         badge.className = 'drive-mode-badge mode-' + mode.toLowerCase();
     }
 
-    // Apply mode presets
+    // Apply mode presets (only adjust sensitivity, not gain/offset)
     const presets = {
-        Precision: { speedLimit: 30, sensitivity: 60 },
-        Normal:    { speedLimit: 50, sensitivity: 100 },
-        Sport:     { speedLimit: 80, sensitivity: 160 },
+        Precision: { sensitivity: 60 },
+        Normal:    { sensitivity: 100 },
+        Sport:     { sensitivity: 160 },
     };
     const p = presets[mode];
     if (p) {
-        State.speedLimit = p.speedLimit;
         State.steeringSensitivity = p.sensitivity;
-        settingSpeedLimit.value = p.speedLimit;
-        settingSteering.value   = p.sensitivity;
-        document.getElementById('valSpeedLimit').textContent = p.speedLimit + '%';
-        document.getElementById('valSteering').textContent   = p.sensitivity + '%';
-        document.getElementById('sbLimiter').textContent     = 'LIM: ' + p.speedLimit + '%';
-        sendCommand('LIMITER', p.speedLimit);
+        const settingSteeringEl = document.getElementById('settingSteering');
+        const valSteeringEl = document.getElementById('valSteering');
+        if (settingSteeringEl) settingSteeringEl.value = p.sensitivity;
+        if (valSteeringEl) valSteeringEl.textContent = p.sensitivity + '%';
     }
 
     toast('Drive mode: ' + mode, 'info', 1800);
@@ -1113,12 +1233,25 @@ function delay(ms) { return new Promise(res => setTimeout(res, ms)); }
    BOOT: Pre-connect if session already has IP
 ══════════════════════════════════════════════════════════ */
 (function boot() {
-    const ip = connectIpInput ? connectIpInput.value.trim() : '';
+    let ip = connectIpInput ? connectIpInput.value.trim() : '';
+    if (!ip) {
+        ip = localStorage.getItem('jetracer_ip') || '';
+        if (ip && connectIpInput) {
+            connectIpInput.value = ip;
+        }
+    }
     if (ip) {
         // Auto-try connection after short delay so page is rendered
         setTimeout(async () => {
             State.ip = ip;
             try {
+                // Ensure the session is updated on the server
+                await fetch('/set_ip', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `ip_address=${encodeURIComponent(ip)}`
+                });
+
                 const res = await fetch('/ping_jetracer', { signal: AbortSignal.timeout(4000) });
                 const data = await res.json();
                 if (data.reachable) {

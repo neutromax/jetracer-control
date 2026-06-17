@@ -1,13 +1,33 @@
 import eventlet
 eventlet.monkey_patch()
 
-from flask import Flask, render_template, request, jsonify, session, redirect, url_for, Response
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for, Response, send_from_directory
+import os
 import requests
 import secrets
+import json
 from flask_socketio import SocketIO, emit
 import paramiko
 import threading
 import time
+
+CONFIG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'steering_config.json')
+
+def load_steering_config():
+    if os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE, 'r') as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {"steering_gain": 1.66, "steering_offset": 0.43}
+
+def save_steering_config(gain, offset):
+    try:
+        with open(CONFIG_FILE, 'w') as f:
+            json.dump({"steering_gain": gain, "steering_offset": offset}, f)
+    except Exception as e:
+        print(f"[ERROR] Failed to save steering config: {e}")
 
 app = Flask(__name__)
 app.secret_key = 'jetracer_secure_static_session_key'
@@ -17,6 +37,17 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 
 # Persistent session for HTTP Keep-Alive – drastically reduces per-command latency
 http_session = requests.Session()
+
+def get_local_ip():
+    import socket
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        return "127.0.0.1"
 
 # ── Auth ───────────────────────────────────────────────────────────────────────
 
@@ -33,13 +64,30 @@ def login():
 def index():
     if 'ip_address' not in session:
         return redirect(url_for('login'))
-    return render_template('index.html', ip_address=session['ip_address'])
+    local_ip = get_local_ip()
+    config = load_steering_config()
+    return render_template('index.html', ip_address=session['ip_address'], local_ip=local_ip,
+                           steering_gain=config['steering_gain'], steering_offset=config['steering_offset'])
 
 @app.route('/mobile')
 def mobile():
     """Mobile-optimised controller interface."""
     ip_address = session.get('ip_address', '')
-    return render_template('mobile.html', ip_address=ip_address)
+    config = load_steering_config()
+    return render_template('mobile.html', ip_address=ip_address,
+                           steering_gain=config['steering_gain'], steering_offset=config['steering_offset'])
+
+@app.route('/set_ip', methods=['POST'])
+def set_ip():
+    """Dedicated endpoint for mobile connect flow.
+    Returns JSON so the session cookie is set reliably across all mobile browsers
+    (unlike /login which redirects, causing some browsers to drop the cookie)."""
+    ip_address = request.form.get('ip_address') or request.json and request.json.get('ip_address')
+    if ip_address:
+        session['ip_address'] = ip_address
+        return jsonify({"status": "ok", "ip": ip_address})
+    return jsonify({"status": "error", "message": "No IP provided"}), 400
+
 
 # ── Video stream proxy ─────────────────────────────────────────────────────────
 
@@ -75,6 +123,22 @@ def command():
     cmd       = request.form.get('cmd')
     target_ip = session['ip_address']
 
+    if cmd:
+        if cmd.startswith('STEERING_GAIN_'):
+            try:
+                val = float(cmd.split('_')[2])
+                config = load_steering_config()
+                save_steering_config(val, config['steering_offset'])
+            except Exception as e:
+                print(f"[ERROR] Parse STEERING_GAIN failed: {e}")
+        elif cmd.startswith('STEERING_OFFSET_'):
+            try:
+                val = float(cmd.split('_')[2])
+                config = load_steering_config()
+                save_steering_config(config['steering_gain'], val)
+            except Exception as e:
+                print(f"[ERROR] Parse STEERING_OFFSET failed: {e}")
+
     try:
         resp = http_session.post(
             f"http://{target_ip}:5000/command",
@@ -107,6 +171,7 @@ def status():
 @app.route('/drive', methods=['POST'])
 def drive():
     target_ip = session.get('ip_address')
+    print(f"[DEBUG DRIVE PROXY] form data: {dict(request.form)}")
     if not target_ip:
         return jsonify({"status": "error"}), 401
     try:
@@ -119,18 +184,20 @@ def drive():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)})
 
+
 # ── Ping ───────────────────────────────────────────────────────────────────────
 
 @app.route('/ping_jetracer')
 def ping_jetracer():
-    target_ip = session.get('ip_address')
+    target_ip = request.args.get('ip') or session.get('ip_address')
     if not target_ip:
-        return jsonify({"reachable": False}), 401
+        return jsonify({"reachable": False, "error": "No target IP address provided."}), 400
     try:
         r = http_session.get(f"http://{target_ip}:5000/ping", timeout=1)
         return jsonify({"reachable": True, "response": r.json()})
     except Exception as e:
         return jsonify({"reachable": False, "error": str(e)})
+
 
 # ── Camera control proxy ───────────────────────────────────────────────────────
 
@@ -231,13 +298,16 @@ def _gallery_proxy(path, method='GET', stream=False):
         
         if stream:
             return Response(r.iter_content(chunk_size=1024), content_type=r.headers.get('Content-Type'))
-        return Response(r.content, content_type=r.headers.get('Content-Type'))
+        return Response(r.content, content_type=r.headers.get('Content-Type'), status=r.status_code)
     except Exception as e:
         return jsonify({"error": str(e)}), 502
 
 @app.route('/capture-frame', methods=['POST'])
 def capture_frame_proxy():
-    return _gallery_proxy('capture-frame', method='POST')
+    resp = _gallery_proxy('capture-frame', method='POST')
+    if resp.status_code == 200:
+        socketio.emit('gallery_updated')
+    return resp
 
 @app.route('/gallery')
 def gallery_list_proxy():
@@ -249,7 +319,56 @@ def gallery_image_proxy(filename):
 
 @app.route('/gallery/<filename>', methods=['DELETE'])
 def gallery_delete_proxy(filename):
-    return _gallery_proxy(f'gallery/{filename}', method='DELETE')
+    resp = _gallery_proxy(f'gallery/{filename}', method='DELETE')
+    if resp.status_code == 200:
+        socketio.emit('gallery_updated')
+    return resp
+
+# ── AI Model Manager Proxy ─────────────────────────────────────────────────────
+
+def _models_proxy(path, method='GET', files=None, data=None):
+    target_ip = session.get('ip_address')
+    if not target_ip:
+        return jsonify({"error": "not logged in"}), 401
+    url = f"http://{target_ip}:5000/{path}"
+    try:
+        if method == 'POST':
+            if files:
+                r = http_session.post(url, files=files, data=data, timeout=60)
+            else:
+                r = http_session.post(url, data=data, timeout=5)
+        elif method == 'DELETE':
+            r = http_session.delete(url, timeout=5)
+        else:
+            r = http_session.get(url, timeout=5)
+        return Response(r.content, content_type=r.headers.get('Content-Type'), status=r.status_code)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 502
+
+@app.route('/models', methods=['GET'])
+def get_models_proxy():
+    return _models_proxy('models')
+
+@app.route('/models/upload', methods=['POST'])
+def upload_model_proxy():
+    if 'file' not in request.files:
+        return jsonify({"error": "No file part"}), 400
+    file = request.files['file']
+    files = {'file': (file.filename, file.stream, file.mimetype)}
+    data = {
+        'name': request.form.get('name'),
+        'description': request.form.get('description'),
+        'type': request.form.get('type')
+    }
+    return _models_proxy('models/upload', method='POST', files=files, data=data)
+
+@app.route('/models/load/<model_name>', methods=['POST'])
+def load_model_proxy(model_name):
+    return _models_proxy(f'models/load/{model_name}', method='POST')
+
+@app.route('/models/<model_name>', methods=['DELETE'])
+def delete_model_proxy(model_name):
+    return _models_proxy(f'models/{model_name}', method='DELETE')
 
 # ── Terminal WebSocket ─────────────────────────────────────────────────────────
 
@@ -340,4 +459,37 @@ def on_terminal_input(data):
             socketio.emit('log', {'type': 'error', 'message': f'Write error: {str(e)}'}, to=sid, namespace='/terminal')
 
 if __name__ == '__main__':
-    socketio.run(app, host='0.0.0.0', port=5001, debug=False)
+    import sys
+    local_ip = get_local_ip()
+    mobile_link = f"http://{local_ip}:5001/mobile"
+    print("=" * 65)
+    print("           JETRACER COMMAND CENTER - ACTIVE SERVICE LINKS")
+    print("-" * 65)
+    print(f"  LAPTOP DASHBOARD LINK:  http://127.0.0.1:5001/")
+    print(f"  MOBILE CONTROLLER LINK: {mobile_link}")
+    print("-" * 65)
+    print("  SCAN QR CODE BELOW TO CONNECT MOBILE PHONE:")
+    print()
+    try:
+        import qrcode
+        qr = qrcode.QRCode(border=1)
+        qr.add_data(mobile_link)
+        qr.make(fit=True)
+        matrix = qr.get_matrix()
+        
+        use_blocks = False
+        if sys.stdout and sys.stdout.encoding:
+            use_blocks = sys.stdout.encoding.lower() == 'utf-8'
+            
+        for row in matrix:
+            line = ""
+            for col in row:
+                if col:
+                    line += "██" if use_blocks else "##"
+                else:
+                    line += "  "
+            print("  " + line)
+    except Exception as e:
+        print(f"  [Could not generate ASCII QR Code: {e}]")
+    print("=" * 65)
+    socketio.run(app, host='0.0.0.0', port=5001, debug=False)

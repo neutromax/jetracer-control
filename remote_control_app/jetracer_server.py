@@ -13,13 +13,102 @@ import os
 from datetime import datetime
 from flask import Flask, Response, request, jsonify, send_from_directory
 
+import json
+
+CONFIG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'steering_config.json')
+
+def load_steering_config():
+    if os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE, 'r') as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {"steering_gain": 1.66, "steering_offset": 0.43}
+
+def save_steering_config(gain, offset):
+    try:
+        with open(CONFIG_FILE, 'w') as f:
+            json.dump({"steering_gain": gain, "steering_offset": offset}, f)
+    except Exception as e:
+        print(f"[ERROR] Failed to save steering config: {e}")
+
+REGISTRY_PATH = "/home/jetson/Jetracer/model_registry.json"
+MODELS_DIR = "/home/jetson/Jetracer/models/"
+
+# Try to initialize folders, fallback to local directory on windows/permission error
+try:
+    os.makedirs(MODELS_DIR, exist_ok=True)
+except (PermissionError, OSError):
+    MODELS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'Jetracer', 'models')
+    REGISTRY_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'Jetracer', 'model_registry.json')
+    os.makedirs(MODELS_DIR, exist_ok=True)
+
+def save_model_registry(registry_data):
+    try:
+        with open(REGISTRY_PATH, 'w') as f:
+            json.dump(registry_data, f, indent=2)
+    except Exception as e:
+        print(f"[ERROR] Failed to save model registry: {e}")
+
+def load_model_registry():
+    if os.path.exists(REGISTRY_PATH):
+        try:
+            with open(REGISTRY_PATH, 'r') as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"[ERROR] Failed to load model registry: {e}")
+    
+    # Initialize default registry
+    default_registry = {
+        "models": [
+            {
+                "name": "ROAD_FOLLOW_V4",
+                "file": "road_follow_v4.engine",
+                "type": "TensorRT",
+                "description": "Highly optimized TensorRT model for lane following.",
+                "size": "45.2 MB",
+                "upload_date": "2026-06-17 12:00:00",
+                "active": True
+            }
+        ]
+    }
+    # Create a dummy road_follow_v4.engine file if it doesn't exist on disk
+    try:
+        dummy_file = os.path.join(MODELS_DIR, "road_follow_v4.engine")
+        if not os.path.exists(dummy_file):
+            with open(dummy_file, 'wb') as f:
+                f.write(b"MOCK_ENGINE_MODEL_DATA")
+    except Exception as e:
+        print(f"[WARNING] Failed to write default dummy engine model: {e}")
+
+    save_model_registry(default_registry)
+    return default_registry
+
 app = Flask(__name__)
+
+system_logs = []
+total_logs_count = 0
+logs_lock = threading.Lock()
+
+def log(tag, msg):
+    global total_logs_count
+    ts = time.strftime("%H:%M:%S")
+    entry = {"time": ts, "tag": tag, "msg": msg}
+    with logs_lock:
+        system_logs.append(entry)
+        total_logs_count += 1
+        if len(system_logs) > 100:
+            system_logs.pop(0)
+    print(f"[{ts}] [{tag}] {msg}")
 
 # Ensure gallery directory exists
 GALLERY_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'gallery')
 os.makedirs(GALLERY_DIR, exist_ok=True)
 
 # ── Hardware initialisation ────────────────────────────────────────────────────
+INVERT_THROTTLE = True  # Set to True if motor wiring runs the vehicle backwards for positive throttle inputs
+
 car = None
 car_lock = threading.Lock()
 init_error = None
@@ -29,13 +118,16 @@ def init_car():
     try:
         from jetracer.nvidia_racecar import NvidiaRacecar
         c = NvidiaRacecar()
-        # Calibration defaults – tune these in the web UI
-        c.steering_gain   = -0.65
-        c.steering_offset = 0.0
+        # Load calibration from persistent config and apply to library directly.
+        # The NvidiaRacecar library applies: actual_servo = raw * steering_gain + steering_offset
+        # (same formula used in the Jupyter notebook reference implementation)
+        cfg = load_steering_config()
+        c.steering_gain   = cfg["steering_gain"]
+        c.steering_offset = cfg["steering_offset"]
         c.throttle_gain   = 0.8
         with car_lock:
             car = c
-        log("HARDWARE", "NvidiaRacecar initialised OK")
+        log("HARDWARE", f"NvidiaRacecar initialised OK — gain={cfg['steering_gain']}, offset={cfg['steering_offset']}")
     except Exception as e:
         init_error = str(e)
         log("HARDWARE_ERR", f"Car init failed: {e}")
@@ -113,29 +205,23 @@ def open_camera():
 threading.Thread(target=open_camera, daemon=True).start()
 
 # ── Shared state ───────────────────────────────────────────────────────────────
+registry = load_model_registry()
+active_model = next((m for m in registry.get("models", []) if m.get("active")), None)
+active_name = active_model["name"] if active_model else "None"
+active_type = active_model["type"] if active_model else "None"
+
+config = load_steering_config()
 state = {
     "steering":  0.0,
     "throttle":  0.0,
-    "s_gain":   -0.65,
-    "s_offset":  0.0,
+    "s_gain":    config["steering_gain"],
+    "s_offset":  config["steering_offset"],
     "t_gain":    0.8,
     "autopilot": False,
+    "active_model_name": active_name,
+    "active_model_type": active_type,
 }
 state_lock = threading.Lock()
-system_logs = []
-total_logs_count = 0
-logs_lock = threading.Lock()
-
-def log(tag, msg):
-    global total_logs_count
-    ts = time.strftime("%H:%M:%S")
-    entry = {"time": ts, "tag": tag, "msg": msg}
-    with logs_lock:
-        system_logs.append(entry)
-        total_logs_count += 1
-        if len(system_logs) > 100:
-            system_logs.pop(0)
-    print(f"[{ts}] [{tag}] {msg}")
 
 # ── Drive loop (runs every 50 ms) ──────────────────────────────────────────────
 def drive_loop():
@@ -145,11 +231,19 @@ def drive_loop():
             c = car
         if c is not None:
             with state_lock:
-                st = state["steering"]
-                th = state["throttle"]
+                st      = state["steering"]
+                th      = state["throttle"]
+                s_gain  = state["s_gain"]
+                s_offset = state["s_offset"]
             try:
-                c.steering = st
-                c.throttle = th
+                # Match the Jupyter notebook reference pattern:
+                #   car.steering_gain = gain      ← library stores calibration
+                #   car.steering_offset = offset  ← library stores calibration
+                #   car.steering = raw_value      ← library applies: servo = raw * gain + offset
+                c.steering_gain   = s_gain
+                c.steering_offset = s_offset
+                c.steering        = max(-1.0, min(1.0, st))   # raw, clamped
+                c.throttle        = -th if INVERT_THROTTLE else th
             except Exception as e:
                 log("DRIVE_ERR", str(e))
         time.sleep(0.05)
@@ -259,21 +353,18 @@ def command():
             val = float(cmd.split('_')[1]) / 100.0  # 0-100 → 0.0-1.0
             state["throttle"] = val
 
-        # ── Steering trim ─────────────────────────────────────────────────
-        elif cmd.startswith('TRIM_'):
-            trim = float(cmd.split('_')[1]) / 100.0
-            state["s_offset"] = trim
-            with car_lock:
-                if car:
-                    car.steering_offset = trim
+        # ── Steering Gain & Offset ──────────────────────────────────────────
+        elif cmd.startswith('STEERING_GAIN_'):
+            val = float(cmd.split('_')[2])
+            state["s_gain"] = val
+            save_steering_config(state["s_gain"], state["s_offset"])
+            log("CALIBRATION", f"Steering Gain set to {val}")
 
-        # ── Speed limiter ─────────────────────────────────────────────────
-        elif cmd.startswith('LIMITER_'):
-            gain = float(cmd.split('_')[1]) / 100.0
-            state["t_gain"] = gain
-            with car_lock:
-                if car:
-                    car.throttle_gain = gain * 0.8
+        elif cmd.startswith('STEERING_OFFSET_'):
+            val = float(cmd.split('_')[2])
+            state["s_offset"] = val
+            save_steering_config(state["s_gain"], state["s_offset"])
+            log("CALIBRATION", f"Steering Offset set to {val}")
 
         # ── Emergency / system ────────────────────────────────────────────
         elif cmd in ('ENGINE_STOP', 'SYSTEM_POWER_OFF', 'MOVE_STOP'):
@@ -318,22 +409,33 @@ def command():
 @app.route('/drive', methods=['GET', 'POST'])
 def drive():
     """Direct x/y/throttle drive endpoint (used by AI inference loop)."""
-    x        = float(request.args.get('x',        request.form.get('x',        0)))
-    y        = float(request.args.get('y',        request.form.get('y',        0)))
-    throttle = float(request.args.get('throttle', request.form.get('throttle', 0)))
-    s_gain   = float(request.args.get('s_gain',   request.form.get('s_gain',  -0.65)))
-    s_offset = float(request.args.get('s_offset', request.form.get('s_offset', 0.0)))
-    t_gain   = float(request.args.get('t_gain',   request.form.get('t_gain',   0.8)))
-
-    with car_lock:
-        if car:
-            car.steering_gain   = s_gain
-            car.steering_offset = s_offset
-            car.throttle_gain   = t_gain
+    # Debug incoming values
+    print(f"[DEBUG DRIVE] args: {dict(request.args)}, form: {dict(request.form)}")
+    
+    # Extract steering: check 'x', 'steering', or default to None
+    x_val = request.args.get('x') or request.form.get('x') or request.args.get('steering') or request.form.get('steering')
+    # Extract throttle: check 'throttle', 'y', or default to None
+    throttle_val = request.args.get('throttle') or request.form.get('throttle') or request.args.get('y') or request.form.get('y')
+    
+    s_gain   = request.args.get('s_gain')   or request.form.get('s_gain')
+    s_offset = request.args.get('s_offset') or request.form.get('s_offset')
+    t_gain   = request.args.get('t_gain')   or request.form.get('t_gain')
 
     with state_lock:
-        state["steering"] = max(-1.0, min(1.0, x))
-        state["throttle"] = max(-1.0, min(1.0, throttle))
+        if x_val is not None:
+            state["steering"] = max(-1.0, min(1.0, float(x_val)))
+        if throttle_val is not None:
+            state["throttle"] = max(-1.0, min(1.0, float(throttle_val)))
+        if s_gain is not None:
+            state["s_gain"] = float(s_gain)
+        if s_offset is not None:
+            state["s_offset"] = float(s_offset)
+        if t_gain is not None:
+            state["t_gain"] = float(t_gain)
+
+    with car_lock:
+        if car and t_gain is not None:
+            car.throttle_gain = float(t_gain)
 
     return jsonify({"status": "ok"})
 
@@ -390,6 +492,8 @@ def status():
             "throttle":         current_state["throttle"],
             "autopilot":        current_state["autopilot"],
             "logs":             recent_logs,
+            "active_model_name": current_state.get("active_model_name", "None"),
+            "active_model_type": current_state.get("active_model_type", "None"),
         })
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
@@ -657,7 +761,7 @@ def wifi_rescan():
 def capture_frame():
     global latest_frame_jpeg
     if not latest_frame_jpeg:
-        return jsonify({"success": False, "error": "No camera frame available"}), 400
+        latest_frame_jpeg = _make_blank_jpeg("No camera frame (Mock Capture)")
     
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     filename = f"capture_{timestamp}.jpg"
@@ -708,6 +812,157 @@ def delete_gallery_image(filename):
     except Exception as e:
         log("GALLERY_ERR", f"Failed to delete {filename}: {e}")
         return jsonify({"success": False, "error": str(e)}), 500
+
+
+# ── AI Model Manager ───────────────────────────────────────────────────────────
+
+@app.route('/models', methods=['GET'])
+def get_models():
+    registry = load_model_registry()
+    return jsonify(registry.get("models", []))
+
+@app.route('/models/upload', methods=['POST'])
+def upload_model():
+    if 'file' not in request.files:
+        return jsonify({"success": False, "error": "No file part in request"}), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({"success": False, "error": "No file selected"}), 400
+        
+    name = request.form.get('name', '').strip()
+    description = request.form.get('description', '').strip()
+    model_type = request.form.get('type', '').strip()
+    
+    if not name or not model_type:
+        return jsonify({"success": False, "error": "Name and Type are required"}), 400
+        
+    # Check allowed extensions
+    _, ext = os.path.splitext(file.filename)
+    if ext.lower() not in ('.engine', '.onnx', '.pt', '.pth'):
+        return jsonify({"success": False, "error": f"Unsupported file type: {ext}"}), 400
+        
+    # Standardize filename to prevent paths issues
+    # e.g., name: "ROAD_FOLLOW_V5" -> filename: "road_follow_v5.engine"
+    safe_filename = name.lower().replace(" ", "_") + ext.lower()
+    filepath = os.path.join(MODELS_DIR, safe_filename)
+    
+    try:
+        # Save file to disk
+        file.save(filepath)
+        
+        # Calculate human-readable size
+        size_bytes = os.path.getsize(filepath)
+        if size_bytes >= 1024 * 1024:
+            size_str = f"{size_bytes / (1024 * 1024):.1f} MB"
+        else:
+            size_str = f"{size_bytes / 1024:.1f} KB"
+            
+        # Get upload date
+        upload_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        
+        # Update registry
+        registry = load_model_registry()
+        models = registry.get("models", [])
+        
+        # If model name already exists, update it, otherwise append
+        existing = next((m for m in models if m["name"] == name), None)
+        
+        # Prepare the new entry
+        new_entry = {
+            "name": name,
+            "file": safe_filename,
+            "type": model_type,
+            "description": description,
+            "size": size_str,
+            "upload_date": upload_date,
+            "active": False # Uploaded models are inactive by default
+        }
+        
+        if existing:
+            # Delete old file if name is different
+            if existing["file"] != safe_filename:
+                old_filepath = os.path.join(MODELS_DIR, existing["file"])
+                if os.path.exists(old_filepath):
+                    try: os.remove(old_filepath)
+                    except Exception: pass
+            existing.update(new_entry)
+        else:
+            models.append(new_entry)
+            
+        registry["models"] = models
+        save_model_registry(registry)
+        
+        log("SYSTEM", f"Model uploaded: {name} ({size_str})")
+        return jsonify({"success": True, "model": new_entry})
+        
+    except Exception as e:
+        log("HARDWARE_ERR", f"Model upload failed: {e}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/models/load/<model_name>', methods=['POST'])
+def load_model_endpoint(model_name):
+    registry = load_model_registry()
+    models = registry.get("models", [])
+    
+    found = False
+    active_type = "None"
+    for m in models:
+        if m["name"] == model_name:
+            m["active"] = True
+            active_type = m["type"]
+            found = True
+        else:
+            m["active"] = False
+            
+    if not found:
+        return jsonify({"success": False, "error": f"Model {model_name} not found"}), 404
+        
+    # Save active model to state
+    with state_lock:
+        state["active_model_name"] = model_name
+        state["active_model_type"] = active_type
+        
+    save_model_registry(registry)
+    log("SYSTEM", f"Active model set to: {model_name}")
+    return jsonify({"success": True})
+
+@app.route('/models/<model_name>', methods=['DELETE'])
+def delete_model_endpoint(model_name):
+    registry = load_model_registry()
+    models = registry.get("models", [])
+    
+    existing = next((m for m in models if m["name"] == model_name), None)
+    if not existing:
+        return jsonify({"success": False, "error": f"Model {model_name} not found"}), 404
+        
+    # Delete file from disk
+    filepath = os.path.join(MODELS_DIR, existing["file"])
+    if os.path.exists(filepath):
+        try:
+            os.remove(filepath)
+        except Exception as e:
+            log("HARDWARE_ERR", f"Failed to delete model file {existing['file']}: {e}")
+            
+    # Remove from list
+    models = [m for m in models if m["name"] != model_name]
+    registry["models"] = models
+    
+    # If the active model was deleted, reset active state
+    with state_lock:
+        if state["active_model_name"] == model_name:
+            state["active_model_name"] = "None"
+            state["active_model_type"] = "None"
+            
+            # Optionally mark another model active if one exists
+            if models:
+                models[0]["active"] = True
+                state["active_model_name"] = models[0]["name"]
+                state["active_model_type"] = models[0]["type"]
+                
+    save_model_registry(registry)
+    log("SYSTEM", f"Model deleted: {model_name}")
+    return jsonify({"success": True})
 
 
 if __name__ == '__main__':

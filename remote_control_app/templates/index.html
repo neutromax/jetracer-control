@@ -1,13 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>JETRACER_COMMAND</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=23">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
+
 <body>
     <div class="app-container">
         <!-- TOP HEADER -->
@@ -36,7 +40,8 @@
             <aside class="sidebar">
                 <div class="pilot-info">
                     <div class="pilot-avatar-box">
-                        <img src="https://ui-avatars.com/api/?name=P1&background=a4e326&color=000&rounded=true" alt="Pilot" class="pilot-avatar">
+                        <img src="https://ui-avatars.com/api/?name=P1&background=a4e326&color=000&rounded=true"
+                            alt="Pilot" class="pilot-avatar">
                     </div>
                     <div>
                         <div class="pilot-name">PILOT_01</div>
@@ -44,25 +49,38 @@
                     </div>
                 </div>
                 <nav class="side-nav" id="sidebarNav">
-                    <a href="#" class="active" data-section="drive"><i class="fas fa-gamepad nav-icon highlight"></i> <span>DRIVE</span></a>
+                    <a href="#" class="active" data-section="drive"><i class="fas fa-gamepad nav-icon highlight"></i>
+                        <span>DRIVE</span></a>
                     <a href="#" data-section="models"><i class="fas fa-cubes nav-icon"></i> <span>MODELS</span></a>
                     <a href="#" data-section="gallery"><i class="fas fa-images nav-icon"></i> <span>GALLERY</span></a>
-                    <a href="#" data-section="settings"><i class="fas fa-sliders-h nav-icon"></i> <span>SETTINGS</span></a>
+                    <a href="#" data-section="settings"><i class="fas fa-sliders-h nav-icon"></i>
+                        <span>SETTINGS</span></a>
                 </nav>
                 <div class="sidebar-bottom">
-                    <button class="btn-stop-engine" id="btnStopEngine"><span>STOP_ENGINE</span><i class="fas fa-power-off btn-icon-only" style="display: none;"></i></button>
-                    <div class="support-link"><i class="far fa-question-circle"></i> <span>SUPPORT</span></div>
+                    <button class="btn-stop-engine" id="btnStopEngine"><span>STOP_ENGINE</span><i
+                            class="fas fa-power-off btn-icon-only" style="display: none;"></i></button>
+                    <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 8px; width: 100%;">
+                        <div class="support-link" id="btnShowMobileQR"
+                            style="cursor: pointer; color: var(--accent-green);"><i class="fas fa-qrcode"></i>
+                            <span>CONNECT_TO_MOBILE_PHONE</span></div>
+                        <div class="support-link"><i class="far fa-question-circle"></i> <span>SUPPORT</span></div>
+                    </div>
                 </div>
             </aside>
 
             <!-- DRIVE SECTION -->
             <div id="section-drive" class="app-section active" style="display: flex; flex: 1; gap: 16px;">
                 <div class="camera-view">
-                    <img class="live-stream-bg" id="cameraStream" src="/video_feed" onerror="this.style.display='none'" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0;">
-                    <div id="cameraOffOverlay" style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; z-index:1; background:rgba(0,0,0,0.88); flex-direction:column; align-items:center; justify-content:center; gap:14px;">
+                    <img class="live-stream-bg" id="cameraStream" src="/video_feed" onerror="this.style.display='none'"
+                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0;">
+                    <div id="cameraOffOverlay"
+                        style="display:none; position:absolute; top:0; left:0; width:100%; height:100%; z-index:1; background:rgba(0,0,0,0.88); flex-direction:column; align-items:center; justify-content:center; gap:14px;">
                         <i class="fas fa-video-slash" style="font-size:52px; color:#444;"></i>
-                        <div style="font-family:var(--font-mono); font-size:18px; font-weight:700; color:#777; letter-spacing:3px;">CAMERA OFF</div>
-                        <div style="font-family:var(--font-mono); font-size:11px; color:#444;">Click CAM_OFF to resume stream</div>
+                        <div
+                            style="font-family:var(--font-mono); font-size:18px; font-weight:700; color:#777; letter-spacing:3px;">
+                            CAMERA OFF</div>
+                        <div style="font-family:var(--font-mono); font-size:11px; color:#444;">Click CAM_OFF to resume
+                            stream</div>
                     </div>
                     <div class="hud">
                         <div class="hud-top">
@@ -75,12 +93,19 @@
                                 <div class="value">60 <span class="unit">HZ</span></div>
                             </div>
                             <div class="coord-box" id="hudConnectionBox">
-                                <div class="label" style="text-align: right; color: var(--text-muted); font-size:9px;">CONNECTION_STATUS</div>
-                                <div class="value" id="hudConnectionStatus" style="color: var(--accent-green); font-family: var(--font-mono); font-size:14px;">CONNECTED</div>
-                                <div class="value" id="hudConnectionIP" style="color: var(--text-muted); font-family: var(--font-mono); font-size:10px; text-align:right;">IP: 10.71.71.189</div>
+                                <div class="label" style="text-align: right; color: var(--text-muted); font-size:9px;">
+                                    CONNECTION_STATUS</div>
+                                <div class="value" id="hudConnectionStatus"
+                                    style="color: var(--accent-green); font-family: var(--font-mono); font-size:14px;">
+                                    CONNECTED</div>
+                                <div class="value" id="hudConnectionIP"
+                                    style="color: var(--text-muted); font-family: var(--font-mono); font-size:10px; text-align:right;">
+                                    IP: 10.71.71.189</div>
                             </div>
                         </div>
-                        <div class="reticle"><div class="reticle-box"></div></div>
+                        <div class="reticle">
+                            <div class="reticle-box"></div>
+                        </div>
                         <div class="hud-bottom">
                             <div class="hud-box gpu-box">
                                 <div class="label-row">
@@ -88,7 +113,11 @@
                                     <div class="value small">68%</div>
                                 </div>
                                 <div class="bar-meter">
-                                    <div class="bar full"></div><div class="bar full"></div><div class="bar full"></div><div class="bar half"></div><div class="bar"></div>
+                                    <div class="bar full"></div>
+                                    <div class="bar full"></div>
+                                    <div class="bar full"></div>
+                                    <div class="bar half"></div>
+                                    <div class="bar"></div>
                                 </div>
                             </div>
                             <div class="hud-box battery-box">
@@ -103,7 +132,9 @@
                                 <div class="speed-unit">METERS/SEC</div>
                             </div>
                             <div class="camera-toggle-box" style="margin-left: 16px;">
-                                <button class="btn btn-arm" id="btnToggleCamera" style="padding: 8px 12px; font-size: 10px;"><i class="fas fa-video"></i> CAM_ON</button>
+                                <button class="btn btn-arm" id="btnToggleCamera"
+                                    style="padding: 8px 12px; font-size: 10px;"><i class="fas fa-video"></i>
+                                    CAM_ON</button>
                             </div>
                         </div>
                     </div>
@@ -113,8 +144,12 @@
                     <div class="control-section">
                         <div class="section-title">DRIVING_CONTROLS</div>
                         <div class="joystick-wrapper">
-                            <div class="joystick-labels top">Y+</div><div class="joystick-labels bottom">Y-</div><div class="joystick-labels left">X-</div><div class="joystick-labels right">X+</div>
-                            <canvas id="joystickCanvas" width="220" height="220" style="width: 100%; height: 100%; max-width: 220px;"></canvas>
+                            <div class="joystick-labels top">Y+</div>
+                            <div class="joystick-labels bottom">Y-</div>
+                            <div class="joystick-labels left">X-</div>
+                            <div class="joystick-labels right">X+</div>
+                            <canvas id="joystickCanvas" width="220" height="220"
+                                style="width: 100%; height: 100%; max-width: 220px;"></canvas>
                         </div>
                     </div>
                     <div class="control-section throttle-wrapper">
@@ -129,17 +164,23 @@
                             </div>
                             <div class="sliders-container">
                                 <div class="slider-group">
-                                    <div class="section-title" style="margin-bottom: 4px;">STEERING_TRIM</div>
+                                    <div class="section-title" style="margin-bottom: 4px;">STEERING_GAIN</div>
                                     <div class="slider-control">
-                                        <button class="slider-btn" id="btnTrimLeft"><i class="fas fa-chevron-left"></i></button>
-                                        <input type="range" class="custom-slider" id="steeringTrim" min="-100" max="100" value="0">
-                                        <button class="slider-btn" id="btnTrimRight"><i class="fas fa-chevron-right"></i></button>
+                                        <button class="slider-btn" id="btnGainDown"><i
+                                                class="fas fa-chevron-left"></i></button>
+                                        <input type="range" class="custom-slider" id="steeringGain" min="0.50"
+                                            max="2.50" step="0.01" value="{{ steering_gain }}">
+                                        <button class="slider-btn" id="btnGainUp"><i
+                                                class="fas fa-chevron-right"></i></button>
                                     </div>
                                 </div>
                                 <div class="slider-group">
-                                    <div class="section-title" style="margin-bottom: 4px;">SPEED_LIMITER</div>
-                                    <div class="slider-control"><input type="range" class="custom-slider" id="speedLimiter" min="0" max="100" value="50"></div>
-                                    <div class="slider-labels"><span>LOW</span><span>MAX</span></div>
+                                    <div class="section-title" style="margin-bottom: 4px;">STEERING_OFFSET</div>
+                                    <div class="slider-control">
+                                        <input type="range" class="custom-slider" id="steeringOffset" min="-1.00"
+                                            max="1.00" step="0.01" value="{{ steering_offset }}">
+                                    </div>
+                                    <div class="slider-labels"><span>MIN (-1.00)</span><span>MAX (1.00)</span></div>
                                 </div>
                             </div>
                         </div>
@@ -148,39 +189,48 @@
             </div>
 
             <!-- MODELS SECTION -->
-            <div id="section-models" class="app-section" style="display: none; flex: 1; padding: 24px; overflow-y: auto;">
+            <div id="section-models" class="app-section"
+                style="display: none; flex: 1; padding: 24px; overflow-y: auto;">
                 <h2 style="color: var(--accent-green); margin-bottom: 24px;">AI_MODELS_LIBRARY</h2>
                 <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px;">
                     <div class="hud-box" style="display: flex; flex-direction: column; gap: 12px;">
                         <div class="section-title">ROAD_FOLLOW_V4</div>
-                        <p style="font-size: 11px; color: var(--text-muted);">Highly optimized TensorRT model for lane following.</p>
+                        <p style="font-size: 11px; color: var(--text-muted);">Highly optimized TensorRT model for lane
+                            following.</p>
                         <button class="btn btn-arm" style="width: 100%;">LOAD_MODEL</button>
                     </div>
                 </div>
             </div>
 
             <!-- GALLERY SECTION -->
-            <div id="section-gallery" class="app-section" style="display: none; flex: 1; padding: 24px; overflow-y: auto;">
+            <div id="section-gallery" class="app-section"
+                style="display: none; flex: 1; padding: 24px; overflow-y: auto;">
                 <h2 style="color: var(--accent-green); margin-bottom: 24px;">CAPTURED_DATA_GALLERY</h2>
-                <div id="gallery-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px;">
-                    <div class="hud-box" style="aspect-ratio: 16/9; background: #000; border: 1px dashed #444; display: flex; align-items: center; justify-content: center; color: #444;">EMPTY_FRAME</div>
+                <div id="gallery-grid"
+                    style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 16px;">
+                    <div class="hud-box"
+                        style="aspect-ratio: 16/9; background: #000; border: 1px dashed #444; display: flex; align-items: center; justify-content: center; color: #444;">
+                        EMPTY_FRAME</div>
                 </div>
             </div>
 
             <!-- SETTINGS SECTION -->
-            <div id="section-settings" class="app-section" style="display: none; flex: 1; padding: 24px; overflow-y: auto;">
+            <div id="section-settings" class="app-section"
+                style="display: none; flex: 1; padding: 24px; overflow-y: auto;">
                 <h2 style="color: var(--accent-green); margin-bottom: 24px;">SYSTEM_CONFIGURATION</h2>
                 <div class="hud-box" style="max-width: 500px; display: flex; flex-direction: column; gap: 20px;">
                     <div class="input-group" style="display: flex; flex-direction: column; gap: 8px;">
                         <label style="font-size: 10px; color: var(--text-muted);">UPLINK_IP_ADDRESS</label>
-                        <input type="text" value="{{ ip_address }}" readonly style="background: #111; border: 1px solid #333; color: var(--accent-green); padding: 10px; border-radius: 4px; font-family: var(--font-mono);">
+                        <input type="text" value="{{ ip_address }}" readonly
+                            style="background: #111; border: 1px solid #333; color: var(--accent-green); padding: 10px; border-radius: 4px; font-family: var(--font-mono);">
                     </div>
                     <button class="btn btn-arm">SAVE_SETTINGS</button>
                 </div>
             </div>
 
             <!-- AUTONOMOUS SECTION -->
-            <div id="section-autonomous" class="app-section" style="display: none; flex: 1; padding: 24px; overflow-y: auto;">
+            <div id="section-autonomous" class="app-section"
+                style="display: none; flex: 1; padding: 24px; overflow-y: auto;">
                 <h2 style="color: var(--accent-green); margin-bottom: 24px;">AUTONOMOUS_OPERATIONS_CONTROL</h2>
                 <div class="hud-box" style="display: flex; flex-direction: column; gap: 20px; max-width: 600px;">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -191,41 +241,52 @@
             </div>
 
             <!-- SYSTEM LOGS SECTION -->
-            <div id="section-system_logs" class="app-section" style="display: none; flex: 1; padding: 24px; overflow-y: auto;">
+            <div id="section-system_logs" class="app-section"
+                style="display: none; flex: 1; padding: 24px; overflow-y: auto;">
                 <h2 style="color: var(--accent-green); margin-bottom: 24px;">FULL_SYSTEM_EVENT_LOGS</h2>
-                <div class="hud-box" id="fullLogList" style="height: calc(100vh - 250px); overflow-y: auto; font-family: var(--font-mono); font-size: 12px; display: flex; flex-direction: column; gap: 8px;">
+                <div class="hud-box" id="fullLogList"
+                    style="height: calc(100vh - 250px); overflow-y: auto; font-family: var(--font-mono); font-size: 12px; display: flex; flex-direction: column; gap: 8px;">
                     <!-- Logs appear here -->
                 </div>
             </div>
 
             <!-- WIFI MANAGER SECTION -->
-            <div id="section-wifi" class="app-section" style="display:none; flex:1; padding:24px; overflow-y:auto; flex-direction:column; gap:20px;">
+            <div id="section-wifi" class="app-section"
+                style="display:none; flex:1; padding:24px; overflow-y:auto; flex-direction:column; gap:20px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
                     <h2 style="color:var(--accent-green); margin:0;">WIFI_MANAGER</h2>
                     <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
                         <input type="text" id="wifiSearch" placeholder="Search networks..." autocomplete="off"
-                               style="background:#111; border:1px solid #333; color:#eee; padding:8px 12px; border-radius:6px; font-family:var(--font-mono); font-size:11px; width:180px; outline:none;">
+                            style="background:#111; border:1px solid #333; color:#eee; padding:8px 12px; border-radius:6px; font-family:var(--font-mono); font-size:11px; width:180px; outline:none;">
                         <button id="btnWifiRefresh" class="btn btn-arm" style="font-size:11px; padding:8px 16px;">
                             <i class="fas fa-sync-alt" id="wifiRefreshIcon"></i> REFRESH_SCAN
                         </button>
                     </div>
                 </div>
-                <div class="hud-box" id="wifiStatusBox" style="display:flex; gap:24px; align-items:center; flex-wrap:wrap; padding:16px;">
+                <div class="hud-box" id="wifiStatusBox"
+                    style="display:flex; gap:24px; align-items:center; flex-wrap:wrap; padding:16px;">
                     <div style="display:flex; align-items:center; gap:10px;">
                         <span class="status-dot" id="wifiStatusDot" style="background:#555; box-shadow:none;"></span>
-                        <span style="font-family:var(--font-mono); font-size:11px; color:var(--text-muted);">CONNECTION</span>
+                        <span
+                            style="font-family:var(--font-mono); font-size:11px; color:var(--text-muted);">CONNECTION</span>
                     </div>
-                    <div style="font-family:var(--font-mono); font-size:13px; font-weight:700;" id="wifiCurrentSSID">SCANNING...</div>
-                    <div style="font-family:var(--font-mono); font-size:11px; color:var(--text-muted);">IP: <span id="wifiCurrentIP" style="color:var(--accent-green);">--</span></div>
-                    <div style="font-family:var(--font-mono); font-size:11px; color:var(--text-muted);">SIGNAL: <span id="wifiCurrentSignal" style="color:var(--accent-green);">--%</span></div>
+                    <div style="font-family:var(--font-mono); font-size:13px; font-weight:700;" id="wifiCurrentSSID">
+                        SCANNING...</div>
+                    <div style="font-family:var(--font-mono); font-size:11px; color:var(--text-muted);">IP: <span
+                            id="wifiCurrentIP" style="color:var(--accent-green);">--</span></div>
+                    <div style="font-family:var(--font-mono); font-size:11px; color:var(--text-muted);">SIGNAL: <span
+                            id="wifiCurrentSignal" style="color:var(--accent-green);">--%</span></div>
                 </div>
                 <div class="hud-box" style="overflow:hidden; padding:0;">
-                    <div style="padding:12px 16px; border-bottom:1px solid rgba(255,255,255,0.06); display:grid; grid-template-columns:1fr 80px 110px 120px 120px; gap:8px; font-size:9px; font-weight:700; color:var(--text-muted); letter-spacing:1px;">
+                    <div
+                        style="padding:12px 16px; border-bottom:1px solid rgba(255,255,255,0.06); display:grid; grid-template-columns:1fr 80px 110px 120px 120px; gap:8px; font-size:9px; font-weight:700; color:var(--text-muted); letter-spacing:1px;">
                         <span>SSID</span><span>SIGNAL</span><span>SECURITY</span><span>STATUS</span><span>ACTION</span>
                     </div>
                     <div id="wifiNetworkList" style="max-height:calc(100vh - 440px); overflow-y:auto;">
-                        <div style="padding:32px; text-align:center; color:var(--text-muted); font-family:var(--font-mono); font-size:12px;">
-                            <i class="fas fa-wifi" style="font-size:32px; margin-bottom:12px; display:block; opacity:0.3;"></i>
+                        <div
+                            style="padding:32px; text-align:center; color:var(--text-muted); font-family:var(--font-mono); font-size:12px;">
+                            <i class="fas fa-wifi"
+                                style="font-size:32px; margin-bottom:12px; display:block; opacity:0.3;"></i>
                             Click REFRESH_SCAN to discover networks
                         </div>
                     </div>
@@ -233,52 +294,86 @@
             </div>
 
             <!-- WIFI PASSWORD MODAL -->
-            <div id="wifiModal" style="display:none; position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,0.75); align-items:center; justify-content:center;">
-                <div class="hud-box" style="width:100%; max-width:400px; margin:20px; display:flex; flex-direction:column; gap:16px; border:1px solid var(--accent-green); position:relative;">
-                    <button onclick="closeWifiModal()" style="position:absolute; top:12px; right:12px; background:none; border:none; color:#888; cursor:pointer; font-size:16px;"><i class="fas fa-times"></i></button>
-                    <div style="font-family:var(--font-mono); font-size:14px; font-weight:700; color:var(--accent-green);">CONNECT_TO_NETWORK</div>
-                    <div style="font-family:var(--font-mono); font-size:12px; color:var(--text-muted);">SSID: <span id="wifiModalSSID" style="color:#eee; font-weight:700;"></span></div>
+            <div id="wifiModal"
+                style="display:none; position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,0.75); align-items:center; justify-content:center;">
+                <div class="hud-box"
+                    style="width:100%; max-width:400px; margin:20px; display:flex; flex-direction:column; gap:16px; border:1px solid var(--accent-green); position:relative;">
+                    <button onclick="closeWifiModal()"
+                        style="position:absolute; top:12px; right:12px; background:none; border:none; color:#888; cursor:pointer; font-size:16px;"><i
+                            class="fas fa-times"></i></button>
+                    <div
+                        style="font-family:var(--font-mono); font-size:14px; font-weight:700; color:var(--accent-green);">
+                        CONNECT_TO_NETWORK</div>
+                    <div style="font-family:var(--font-mono); font-size:12px; color:var(--text-muted);">SSID: <span
+                            id="wifiModalSSID" style="color:#eee; font-weight:700;"></span></div>
                     <div style="display:flex; flex-direction:column; gap:6px;">
-                        <label style="font-size:10px; color:var(--text-muted); font-family:var(--font-mono);">PASSWORD (leave blank for open networks)</label>
+                        <label style="font-size:10px; color:var(--text-muted); font-family:var(--font-mono);">PASSWORD
+                            (leave blank for open networks)</label>
                         <input type="password" id="wifiPassword" placeholder="Enter WiFi password..."
-                               style="background:#111; border:1px solid #333; color:#eee; padding:10px 14px; border-radius:6px; font-family:var(--font-mono); font-size:13px; outline:none; width:100%; box-sizing:border-box;">
+                            style="background:#111; border:1px solid #333; color:#eee; padding:10px 14px; border-radius:6px; font-family:var(--font-mono); font-size:13px; outline:none; width:100%; box-sizing:border-box;">
                     </div>
-                    <div id="wifiConnectStatus" style="font-family:var(--font-mono); font-size:11px; min-height:20px;"></div>
+                    <div id="wifiConnectStatus" style="font-family:var(--font-mono); font-size:11px; min-height:20px;">
+                    </div>
                     <div style="display:flex; gap:10px;">
-                        <button id="btnWifiConnect" class="btn btn-arm" style="flex:1; padding:10px;" onclick="doWifiConnect()">
+                        <button id="btnWifiConnect" class="btn btn-arm" style="flex:1; padding:10px;"
+                            onclick="doWifiConnect()">
                             <i class="fas fa-plug"></i> CONNECT
                         </button>
-                        <button class="btn" style="flex:1; padding:10px; background:#222; border:1px solid #444; color:#888; cursor:pointer; border-radius:6px; font-family:var(--font-mono); font-size:11px;" onclick="closeWifiModal()">CANCEL</button>
+                        <button class="btn"
+                            style="flex:1; padding:10px; background:#222; border:1px solid #444; color:#888; cursor:pointer; border-radius:6px; font-family:var(--font-mono); font-size:11px;"
+                            onclick="closeWifiModal()">CANCEL</button>
                     </div>
                 </div>
             </div>
 
             <!-- GALLERY PREVIEW MODAL -->
-            <div id="galleryModal" style="display:none; position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,0.85); align-items:center; justify-content:center; flex-direction:column;">
+            <div id="galleryModal"
+                style="display:none; position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,0.85); align-items:center; justify-content:center; flex-direction:column;">
                 <div style="position:absolute; top:24px; right:24px; display:flex; gap:16px;">
-                    <button class="btn btn-arm" id="btnGalleryDownload" style="padding:10px 16px;"><i class="fas fa-download"></i> DOWNLOAD</button>
-                    <button class="btn" id="btnGalleryDelete" style="padding:10px 16px; background:#400; border:1px solid #800; color:#f88;"><i class="fas fa-trash"></i> DELETE</button>
-                    <button class="btn" onclick="document.getElementById('galleryModal').style.display='none'" style="padding:10px 16px; background:#222; border:1px solid #444;"><i class="fas fa-times"></i> CLOSE</button>
+                    <button class="btn btn-arm" id="btnGalleryDownload" style="padding:10px 16px;"><i
+                            class="fas fa-download"></i> DOWNLOAD</button>
+                    <button class="btn" id="btnGalleryDelete"
+                        style="padding:10px 16px; background:#400; border:1px solid #800; color:#f88;"><i
+                            class="fas fa-trash"></i> DELETE</button>
+                    <button class="btn" onclick="document.getElementById('galleryModal').style.display='none'"
+                        style="padding:10px 16px; background:#222; border:1px solid #444;"><i class="fas fa-times"></i>
+                        CLOSE</button>
                 </div>
-                <div style="font-family:var(--font-mono); font-size:16px; color:var(--accent-green); margin-bottom:12px; font-weight:700;" id="galleryModalTitle">filename.jpg</div>
-                <img id="galleryModalImage" src="" style="max-width:90%; max-height:80%; border:1px solid #333; border-radius:4px; box-shadow:0 10px 30px rgba(0,0,0,0.8);">
+                <div style="font-family:var(--font-mono); font-size:16px; color:var(--accent-green); margin-bottom:12px; font-weight:700;"
+                    id="galleryModalTitle">filename.jpg</div>
+                <img id="galleryModalImage" src=""
+                    style="max-width:90%; max-height:80%; border:1px solid #333; border-radius:4px; box-shadow:0 10px 30px rgba(0,0,0,0.8);">
             </div>
 
 
             <!-- TERMINAL SECTION -->
-            <div id="section-terminal" class="app-section" style="display: none; flex: 1; padding: 24px; flex-direction: column; gap: 16px; min-height: 0;">
-                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
+            <div id="section-terminal" class="app-section"
+                style="display: none; flex: 1; padding: 24px; flex-direction: column; gap: 16px; min-height: 0;">
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
                     <h2 style="color: var(--accent-green); margin: 0;">EMBEDDED_SSH_TERMINAL</h2>
-                    <div style="display: flex; gap: 16px; font-size: 11px; font-weight: 600; font-family: var(--font-mono);">
-                        <div id="terminalStatus" style="color: var(--text-muted); display: flex; align-items: center; gap: 6px;"><span class="status-dot" style="background: var(--text-muted); box-shadow: none;" id="terminalStatusDot"></span> SSH STATUS: <span id="terminalStatusText">DISCONNECTED</span></div>
-                        <div style="color: var(--text-muted);">HOST: <span id="terminalHost" style="color: var(--text-main);">mcqueen</span></div>
-                        <div style="color: var(--text-muted);">USER: <span id="terminalUser" style="color: var(--text-main);">jetson</span></div>
+                    <div
+                        style="display: flex; gap: 16px; font-size: 11px; font-weight: 600; font-family: var(--font-mono);">
+                        <div id="terminalStatus"
+                            style="color: var(--text-muted); display: flex; align-items: center; gap: 6px;"><span
+                                class="status-dot" style="background: var(--text-muted); box-shadow: none;"
+                                id="terminalStatusDot"></span> SSH STATUS: <span
+                                id="terminalStatusText">DISCONNECTED</span></div>
+                        <div style="color: var(--text-muted);">HOST: <span id="terminalHost"
+                                style="color: var(--text-main);">mcqueen</span></div>
+                        <div style="color: var(--text-muted);">USER: <span id="terminalUser"
+                                style="color: var(--text-main);">jetson</span></div>
                     </div>
                 </div>
-                <div class="terminal-container" id="terminalContainer" style="flex: 1; background: #000; border: 1px solid var(--border-color); border-radius: 8px; font-family: var(--font-mono); font-size: 13px; color: #fff; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; min-height: 300px; max-height: calc(100vh - 250px);">
-                    <div class="terminal-output" id="terminalOutput" style="white-space: pre-wrap; word-break: break-all; flex: 1; min-height: 0; margin-bottom: 8px;"></div>
+                <div class="terminal-container" id="terminalContainer"
+                    style="flex: 1; background: #000; border: 1px solid var(--border-color); border-radius: 8px; font-family: var(--font-mono); font-size: 13px; color: #fff; padding: 16px; overflow-y: auto; display: flex; flex-direction: column; min-height: 300px; max-height: calc(100vh - 250px);">
+                    <div class="terminal-output" id="terminalOutput"
+                        style="white-space: pre-wrap; word-break: break-all; flex: 1; min-height: 0; margin-bottom: 8px;">
+                    </div>
                     <div class="terminal-input-line" style="display: flex; align-items: center; gap: 4px;">
-                        <input type="text" id="terminalInput" style="flex: 1; background: transparent; border: none; outline: none; color: #fff; font-family: var(--font-mono); font-size: 13px; padding: 0;" autocomplete="off" autofocus placeholder="Type command and press Enter...">
+                        <input type="text" id="terminalInput"
+                            style="flex: 1; background: transparent; border: none; outline: none; color: #fff; font-family: var(--font-mono); font-size: 13px; padding: 0;"
+                            autocomplete="off" autofocus placeholder="Type command and press Enter...">
                     </div>
                 </div>
             </div>
@@ -289,20 +384,61 @@
             <div class="log-feed">
                 <div class="section-title">SYSTEM_LOG_FEED</div>
                 <div class="log-entries" id="logEntries">
-                    <div class="log-entry"><span class="timestamp">[14:22:01]</span> <span class="tag green">SYS:</span> UPLINK_ESTABLISHED_TO_{{ ip_address }}</div>
+                    <div class="log-entry"><span class="timestamp">[14:22:01]</span> <span class="tag green">SYS:</span>
+                        UPLINK_ESTABLISHED_TO_{{ ip_address }}</div>
                 </div>
             </div>
             <div class="telemetry-stats">
-                <div class="stat-box"><div class="section-title">CPU_CORE_TEMP</div><div class="stat-value">42° <span class="stat-sub green">NORMAL</span></div></div>
-                <div class="stat-box"><div class="section-title">RAM_USAGE</div><div class="stat-value">2.4<span class="unit">GB</span> <span class="stat-sub green">OPTIMIZED</span></div></div>
-                <div class="stat-box ai-box"><div class="section-title">AI_MODEL</div><div style="font-weight: bold; font-size: 14px; margin-top: 4px;">ROAD_FOLLOW_V4</div><div style="font-size: 10px; color: var(--text-muted); margin-top: 4px;">TENSORRT_ENABLED</div></div>
+                <div class="stat-box">
+                    <div class="section-title">CPU_CORE_TEMP</div>
+                    <div class="stat-value">42° <span class="stat-sub green">NORMAL</span></div>
+                </div>
+                <div class="stat-box">
+                    <div class="section-title">RAM_USAGE</div>
+                    <div class="stat-value">2.4<span class="unit">GB</span> <span
+                            class="stat-sub green">OPTIMIZED</span></div>
+                </div>
+                <div class="stat-box ai-box">
+                    <div class="section-title">AI_MODEL</div>
+                    <div style="font-weight: bold; font-size: 14px; margin-top: 4px;">ROAD_FOLLOW_V4</div>
+                    <div style="font-size: 10px; color: var(--text-muted); margin-top: 4px;">TENSORRT_ENABLED</div>
+                </div>
             </div>
             <div class="capture-section">
-                <button class="btn btn-capture" id="btnCapture"><i class="fas fa-camera icon"></i><span>CAPTURE_FRAME</span></button>
+                <button class="btn btn-capture" id="btnCapture"><i
+                        class="fas fa-camera icon"></i><span>CAPTURE_FRAME</span></button>
             </div>
         </div>
     </div>
+
+    <!-- MOBILE UPLINK QR MODAL -->
+    <div id="mobileQRModal"
+        style="display:none; position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,0.85); align-items:center; justify-content:center;">
+        <div class="hud-box"
+            style="width:100%; max-width:320px; margin:20px; display:flex; flex-direction:column; gap:16px; border:1px solid var(--accent-green); position:relative; text-align:center; padding: 24px;">
+            <button onclick="document.getElementById('mobileQRModal').style.display='none'"
+                style="position:absolute; top:12px; right:12px; background:none; border:none; color:#888; cursor:pointer; font-size:16px;"><i
+                    class="fas fa-times"></i></button>
+            <div
+                style="font-family:var(--font-mono); font-size:14px; font-weight:700; color:var(--accent-green); letter-spacing: 1px;">
+                CONNECT_TO_MOBILE_PHONE</div>
+            <div style="font-size:11px; color:var(--text-muted); line-height: 1.4;">Scan this QR code with your phone
+                camera to open the Mobile Command Controller directly:</div>
+            <div
+                style="display:flex; justify-content:center; padding:12px; background:#fff; border-radius:8px; width: fit-content; margin: 0 auto; border: 4px solid var(--accent-green-dim);">
+                <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=http://{{ local_ip }}:5001/mobile"
+                    style="width:180px; height:180px; display:block;" alt="QR Code">
+            </div>
+            <div
+                style="font-family:var(--font-mono); font-size:11px; color:var(--accent-green); word-break: break-all; margin-top: 8px;">
+                <a href="http://{{ local_ip }}:5001/mobile" target="_blank"
+                    style="color: var(--accent-green); text-decoration: none;">http://{{ local_ip }}:5001/mobile</a>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <script src="{{ url_for('static', filename='js/main.js') }}?v=23"></script>
 </body>
+
 </html>
