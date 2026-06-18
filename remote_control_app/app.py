@@ -49,6 +49,33 @@ def get_local_ip():
     except Exception:
         return "127.0.0.1"
 
+def get_target_ip():
+    # 1. Header
+    ip = request.headers.get('X-Target-IP')
+    if ip:
+        return ip
+    # 2. Query Parameter
+    ip = request.args.get('ip') or request.args.get('ip_address')
+    if ip:
+        return ip
+    # 3. JSON
+    if request.is_json:
+        try:
+            val = request.get_json(silent=True)
+            if val and isinstance(val, dict):
+                ip = val.get('ip') or val.get('ip_address')
+                if ip:
+                    return ip
+        except Exception:
+            pass
+    # 4. Form Data
+    if request.form:
+        ip = request.form.get('ip') or request.form.get('ip_address')
+        if ip:
+            return ip
+    # 5. Session
+    return session.get('ip_address')
+
 # ── Auth ───────────────────────────────────────────────────────────────────────
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -72,7 +99,7 @@ def index():
 @app.route('/mobile')
 def mobile():
     """Mobile-optimised controller interface."""
-    ip_address = session.get('ip_address', '')
+    ip_address = request.args.get('ip') or session.get('ip_address', '')
     config = load_steering_config()
     return render_template('mobile.html', ip_address=ip_address,
                            steering_gain=config['steering_gain'], steering_offset=config['steering_offset'])
@@ -93,7 +120,7 @@ def set_ip():
 
 @app.route('/video_feed')
 def video_feed():
-    target_ip = session.get('ip_address')
+    target_ip = get_target_ip()
     if not target_ip:
         return "No JetRacer IP connected", 404
 
@@ -117,11 +144,11 @@ def video_feed():
 
 @app.route('/command', methods=['POST'])
 def command():
-    if 'ip_address' not in session:
+    target_ip = get_target_ip()
+    if not target_ip:
         return jsonify({"status": "error", "message": "Not connected to any JetRacer."}), 401
 
     cmd       = request.form.get('cmd')
-    target_ip = session['ip_address']
 
     if cmd:
         if cmd.startswith('STEERING_GAIN_'):
@@ -157,7 +184,7 @@ def command():
 
 @app.route('/status')
 def status():
-    target_ip = session.get('ip_address')
+    target_ip = get_target_ip()
     if not target_ip:
         return jsonify({"status": "disconnected"}), 401
     try:
@@ -170,7 +197,7 @@ def status():
 
 @app.route('/drive', methods=['POST'])
 def drive():
-    target_ip = session.get('ip_address')
+    target_ip = get_target_ip()
     print(f"[DEBUG DRIVE PROXY] form data: {dict(request.form)}")
     if not target_ip:
         return jsonify({"status": "error"}), 401
@@ -189,7 +216,7 @@ def drive():
 
 @app.route('/ping_jetracer')
 def ping_jetracer():
-    target_ip = request.args.get('ip') or session.get('ip_address')
+    target_ip = get_target_ip()
     if not target_ip:
         return jsonify({"reachable": False, "error": "No target IP address provided."}), 400
     try:
@@ -203,7 +230,7 @@ def ping_jetracer():
 
 @app.route('/camera/status')
 def camera_status():
-    target_ip = session.get('ip_address')
+    target_ip = get_target_ip()
     if not target_ip:
         return jsonify({"camera_running": False}), 401
     try:
@@ -214,7 +241,7 @@ def camera_status():
 
 @app.route('/camera/stop', methods=['POST'])
 def camera_stop():
-    target_ip = session.get('ip_address')
+    target_ip = get_target_ip()
     if not target_ip:
         return jsonify({"status": "error"}), 401
     try:
@@ -225,7 +252,7 @@ def camera_stop():
 
 @app.route('/camera/start', methods=['POST'])
 def camera_start():
-    target_ip = session.get('ip_address')
+    target_ip = get_target_ip()
     if not target_ip:
         return jsonify({"status": "error"}), 401
     try:
@@ -238,7 +265,7 @@ def camera_start():
 
 @app.route('/logs')
 def get_logs():
-    target_ip = session.get('ip_address')
+    target_ip = get_target_ip()
     if not target_ip:
         return jsonify({"total": 0, "entries": []}), 401
     since = request.args.get('since', '0')
@@ -251,7 +278,7 @@ def get_logs():
 # ── WiFi proxy ─────────────────────────────────────────────────────────────────
 
 def _wifi_proxy(path, method='GET', json_body=None):
-    target_ip = session.get('ip_address')
+    target_ip = get_target_ip()
     if not target_ip:
         return jsonify({"error": "not logged in"}), 401
     url = f"http://{target_ip}:5000/wifi/{path}"
@@ -283,7 +310,7 @@ def wifi_connect_proxy():
 # ── Gallery proxy ──────────────────────────────────────────────────────────────
 
 def _gallery_proxy(path, method='GET', stream=False):
-    target_ip = session.get('ip_address')
+    target_ip = get_target_ip()
     if not target_ip:
         return jsonify({"error": "not logged in"}), 401
     
@@ -327,7 +354,7 @@ def gallery_delete_proxy(filename):
 # ── AI Model Manager Proxy ─────────────────────────────────────────────────────
 
 def _models_proxy(path, method='GET', files=None, data=None):
-    target_ip = session.get('ip_address')
+    target_ip = get_target_ip()
     if not target_ip:
         return jsonify({"error": "not logged in"}), 401
     url = f"http://{target_ip}:5000/{path}"
@@ -388,7 +415,7 @@ def cleanup_session(sid):
             pass
 
 def ssh_connect_and_loop(sid):
-    host = "10.71.71.189"
+    host = get_target_ip() or "10.106.155.189"
     username = "jetson"
     password = "jetson"
     

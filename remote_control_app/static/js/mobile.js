@@ -13,6 +13,31 @@
 
 'use strict';
 
+// Intercept all fetch requests to automatically append target IP query parameter and header
+(function() {
+    const originalFetch = window.fetch;
+    window.fetch = async function(url, options = {}) {
+        if (typeof url === 'string' && typeof State !== 'undefined' && State.ip) {
+            // Avoid adding header or query param if it's external
+            if (url.startsWith('/') || !url.includes('://')) {
+                options.headers = options.headers || {};
+                if (options.headers instanceof Headers) {
+                    options.headers.set('X-Target-IP', State.ip);
+                } else {
+                    options.headers['X-Target-IP'] = State.ip;
+                }
+                
+                // Add query parameter to the URL
+                const separator = url.includes('?') ? '&' : '?';
+                if (!url.includes('ip=')) {
+                    url = `${url}${separator}ip=${encodeURIComponent(State.ip)}`;
+                }
+            }
+        }
+        return originalFetch(url, options);
+    };
+})();
+
 console.log('[MOBILE.JS] ✓ JetRacer Mobile Command loaded');
 
 /* ══════════════════════════════════════════════════════════
@@ -289,7 +314,8 @@ function initCamera() {
 }
 
 function loadStream() {
-    streamImg.src = `/video_feed?t=${Date.now()}`;
+    const ipParam = State.ip ? `&ip=${encodeURIComponent(State.ip)}` : '';
+    streamImg.src = `/video_feed?t=${Date.now()}${ipParam}`;
     streamImg.style.display = 'block';
     State.cameraOn = true;
     setCameraUI(true);

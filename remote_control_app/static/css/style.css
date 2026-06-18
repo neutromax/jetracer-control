@@ -1115,3 +1115,56 @@ canvas#joystickCanvas:active {
     background: #ffaa00 !important;
     box-shadow: 0 0 6px #ffaa00 !important;
 }
+
+/* AI Model Manager Styles */
+.model-card {
+    position: relative;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(30, 30, 30, 0.6);
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    border-radius: 8px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.model-card:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+}
+
+.model-card.active-model {
+    border-color: var(--accent-green) !important;
+    box-shadow: 0 0 15px rgba(164, 227, 38, 0.15) !important;
+    background: rgba(164, 227, 38, 0.02) !important;
+}
+
+.active-badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: var(--accent-green);
+    color: #000;
+    font-size: 8px;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 3px;
+    letter-spacing: 1px;
+    box-shadow: 0 0 8px var(--accent-green);
+}
+
+/* Upload Progress Bar */
+#uploadProgressContainer {
+    width: 100%;
+}
+
+#uploadProgressBar {
+    width: 0%;
+    height: 100%;
+    background: var(--accent-green);
+    box-shadow: 0 0 8px var(--accent-green);
+    transition: width 0.1s ease;
+}

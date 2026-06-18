@@ -8,7 +8,7 @@ import paramiko
 import os
 import time
 
-JETRACER_IP   = "10.71.71.189"
+JETRACER_IP   = "10.106.155.189"
 JETRACER_USER = "jetson"
 JETRACER_PASS = "jetson"
 REMOTE_PATH   = "/home/jetson/jetracer_server.py"

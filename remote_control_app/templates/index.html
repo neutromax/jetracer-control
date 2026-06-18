@@ -8,7 +8,7 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;700&display=swap"
         rel="stylesheet">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=23">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}?v=24">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 
@@ -190,15 +190,15 @@
 
             <!-- MODELS SECTION -->
             <div id="section-models" class="app-section"
-                style="display: none; flex: 1; padding: 24px; overflow-y: auto;">
-                <h2 style="color: var(--accent-green); margin-bottom: 24px;">AI_MODELS_LIBRARY</h2>
-                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 16px;">
-                    <div class="hud-box" style="display: flex; flex-direction: column; gap: 12px;">
-                        <div class="section-title">ROAD_FOLLOW_V4</div>
-                        <p style="font-size: 11px; color: var(--text-muted);">Highly optimized TensorRT model for lane
-                            following.</p>
-                        <button class="btn btn-arm" style="width: 100%;">LOAD_MODEL</button>
-                    </div>
+                style="display: none; flex: 1; padding: 24px; overflow-y: auto; flex-direction: column; gap: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                    <h2 style="color: var(--accent-green); margin: 0;">AI_MODELS_LIBRARY</h2>
+                    <button id="btnOpenUploadModal" class="btn btn-arm" style="font-size: 11px; padding: 8px 16px;">
+                        <i class="fas fa-plus"></i> ADD MODEL
+                    </button>
+                </div>
+                <div id="models-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;">
+                    <!-- Model cards will be generated dynamically -->
                 </div>
             </div>
 
@@ -345,6 +345,70 @@
                     style="max-width:90%; max-height:80%; border:1px solid #333; border-radius:4px; box-shadow:0 10px 30px rgba(0,0,0,0.8);">
             </div>
 
+            <!-- MODEL UPLOAD MODAL -->
+            <div id="uploadModelModal"
+                style="display:none; position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,0.8); align-items:center; justify-content:center;">
+                <div class="hud-box"
+                    style="width:100%; max-width:420px; margin:20px; display:flex; flex-direction:column; gap:16px; border:1px solid var(--accent-green); position:relative; padding: 24px; background: rgba(20,20,20,0.95); backdrop-filter: blur(12px);">
+                    <button onclick="closeUploadModal()"
+                        style="position:absolute; top:12px; right:12px; background:none; border:none; color:#888; cursor:pointer; font-size:16px;"><i
+                            class="fas fa-times"></i></button>
+                    <div
+                        style="font-family:var(--font-mono); font-size:14px; font-weight:700; color:var(--accent-green); letter-spacing: 1px;">
+                        REGISTER NEW MODEL</div>
+                    
+                    <form id="uploadModelForm" style="display: flex; flex-direction: column; gap: 14px;" onsubmit="doModelUpload(event)">
+                        <div style="display:flex; flex-direction:column; gap:6px;">
+                            <label style="font-size:10px; color:var(--text-muted); font-family:var(--font-mono);">MODEL NAME</label>
+                            <input type="text" id="uploadModelName" placeholder="e.g. ROAD_FOLLOW_V5" required
+                                style="background:#111; border:1px solid #333; color:#eee; padding:8px 12px; border-radius:6px; font-family:var(--font-mono); font-size:12px; outline:none;">
+                        </div>
+                        
+                        <div style="display:flex; flex-direction:column; gap:6px;">
+                            <label style="font-size:10px; color:var(--text-muted); font-family:var(--font-mono);">DESCRIPTION</label>
+                            <textarea id="uploadModelDesc" placeholder="Describe this model..." rows="2"
+                                style="background:#111; border:1px solid #333; color:#eee; padding:8px 12px; border-radius:6px; font-family:var(--font-mono); font-size:12px; outline:none; resize: none;"></textarea>
+                        </div>
+                        
+                        <div style="display:flex; flex-direction:column; gap:6px;">
+                            <label style="font-size:10px; color:var(--text-muted); font-family:var(--font-mono);">MODEL TYPE</label>
+                            <select id="uploadModelType" required
+                                style="background:#111; border:1px solid #333; color:#eee; padding:8px 12px; border-radius:6px; font-family:var(--font-mono); font-size:12px; outline:none;">
+                                <option value="TensorRT">TensorRT (.engine)</option>
+                                <option value="ONNX">ONNX (.onnx)</option>
+                                <option value="PyTorch">PyTorch (.pt / .pth)</option>
+                            </select>
+                        </div>
+                        
+                        <div style="display:flex; flex-direction:column; gap:6px;">
+                            <label style="font-size:10px; color:var(--text-muted); font-family:var(--font-mono);">MODEL FILE (.engine, .onnx, .pt, .pth)</label>
+                            <input type="file" id="uploadModelFile" accept=".engine,.onnx,.pt,.pth" required
+                                style="background:#111; border:1px solid #333; color:#eee; padding:8px 12px; border-radius:6px; font-family:var(--font-mono); font-size:12px; outline:none;">
+                        </div>
+
+                        <div id="uploadProgressContainer" style="display:none; flex-direction:column; gap:6px; margin-top:4px;">
+                            <div style="display:flex; justify-content:space-between; font-size:9px; font-family:var(--font-mono); color:var(--text-muted);">
+                                <span>UPLOADING_FILE...</span>
+                                <span id="uploadProgressVal">0%</span>
+                            </div>
+                            <div style="height:6px; background:#111; border-radius:3px; overflow:hidden; border:1px solid #333;">
+                                <div id="uploadProgressBar" style="width:0%; height:100%; background:var(--accent-green); transition:width: 0.1s ease;"></div>
+                            </div>
+                        </div>
+
+                        <div id="uploadStatus" style="font-family:var(--font-mono); font-size:11px; min-height:16px;"></div>
+
+                        <div style="display:flex; gap:10px; margin-top: 6px;">
+                            <button type="submit" id="btnSubmitUpload" class="btn btn-arm" style="flex:1; padding:10px;">
+                                <i class="fas fa-upload"></i> UPLOAD MODEL
+                            </button>
+                            <button type="button" class="btn" onclick="closeUploadModal()"
+                                style="flex:1; padding:10px; background:#222; border:1px solid #444; color:#888; cursor:pointer; border-radius:6px; font-family:var(--font-mono); font-size:11px;">CANCEL</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
 
             <!-- TERMINAL SECTION -->
             <div id="section-terminal" class="app-section"
@@ -400,8 +464,8 @@
                 </div>
                 <div class="stat-box ai-box">
                     <div class="section-title">AI_MODEL</div>
-                    <div style="font-weight: bold; font-size: 14px; margin-top: 4px;">ROAD_FOLLOW_V4</div>
-                    <div style="font-size: 10px; color: var(--text-muted); margin-top: 4px;">TENSORRT_ENABLED</div>
+                    <div id="hudModelName" style="font-weight: bold; font-size: 14px; margin-top: 4px;">ROAD_FOLLOW_V4</div>
+                    <div id="hudModelType" style="font-size: 10px; color: var(--text-muted); margin-top: 4px;">TENSORRT_ENABLED</div>
                 </div>
             </div>
             <div class="capture-section">
@@ -438,7 +502,7 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
-    <script src="{{ url_for('static', filename='js/main.js') }}?v=23"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}?v=24"></script>
 </body>
 
 </html>

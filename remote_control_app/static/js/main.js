@@ -884,4 +884,252 @@ mainSocket.on('gallery_updated', () => {
     if (gallerySection && gallerySection.style.display !== 'none') {
         loadGallery();
     }
-});
+});
+
+// --- AI Model Manager ---
+let _models = [];
+
+window.loadModels = async function() {
+    const grid = document.getElementById('models-grid');
+    if (!grid) return;
+    grid.innerHTML = '<div style="grid-column: 1/-1; padding:32px; text-align:center; color:var(--text-muted); font-family:var(--font-mono); font-size:12px;"><i class="fas fa-circle-notch fa-spin" style="margin-right:8px;"></i>LOADING_MODELS...</div>';
+    
+    try {
+        const response = await fetch('/models');
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        _models = await response.json();
+        
+        grid.innerHTML = '';
+        if (_models.length === 0) {
+            grid.innerHTML = '<div style="grid-column: 1/-1; padding:32px; text-align:center; color:var(--text-muted); font-family:var(--font-mono); font-size:12px;">No models registered yet. Click ADD MODEL to begin.</div>';
+            return;
+        }
+        
+        _models.forEach(m => {
+            const card = document.createElement('div');
+            card.className = `model-card ${m.active ? 'active-model' : ''}`;
+            
+            let badgeHtml = m.active ? `<span class="active-badge">ACTIVE</span>` : '';
+            let btnLoadClass = m.active ? 'btn-arm' : '';
+            let btnLoadIcon = m.active ? 'fa-check' : 'fa-play';
+            let btnLoadText = m.active ? 'ACTIVE' : 'LOAD MODEL';
+            let btnLoadDisabled = m.active ? 'disabled' : '';
+            
+            card.innerHTML = `
+                ${badgeHtml}
+                <div style="font-family: var(--font-mono); font-weight: 700; font-size: 14px; color: ${m.active ? 'var(--accent-green)' : '#eee'}; max-width: 80%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${m.name}">${m.name}</div>
+                <div style="font-size: 11px; color: var(--text-muted); line-height: 1.4; min-height: 33px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;" title="${m.description || ''}">${m.description || 'No description provided.'}</div>
+                
+                <div style="border-top: 1px solid rgba(255,255,255,0.06); padding-top: 10px; display: flex; flex-direction: column; gap: 6px; font-family: var(--font-mono); font-size: 10px; color: var(--text-muted);">
+                    <div style="display: flex; justify-content: space-between;"><span>TYPE:</span><span style="color: #ccc;">${m.type}</span></div>
+                    <div style="display: flex; justify-content: space-between;"><span>FILE:</span><span style="color: #ccc; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${m.file}">${m.file}</span></div>
+                    <div style="display: flex; justify-content: space-between;"><span>SIZE:</span><span style="color: #ccc;">${m.size}</span></div>
+                    <div style="display: flex; justify-content: space-between;"><span>UPLOADED:</span><span style="color: #ccc;">${m.upload_date}</span></div>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: auto;">
+                    <button class="btn ${btnLoadClass}" style="flex: 1; font-size: 10px; padding: 6px;" onclick="loadModel('${m.name}')" ${btnLoadDisabled}>
+                        <i class="fas ${btnLoadIcon}"></i> ${btnLoadText}
+                    </button>
+                    <button class="btn" style="background: rgba(139, 42, 54, 0.1); border: 1px solid var(--accent-red); color: #f88; font-size: 10px; padding: 6px;" onclick="deleteModel('${m.name}')">
+                        <i class="fas fa-trash"></i> DELETE
+                    </button>
+                </div>
+            `;
+            grid.appendChild(card);
+            
+            // If active, update HUD dynamically
+            if (m.active) {
+                updateHudModel(m.name, m.type);
+            }
+        });
+    } catch (err) {
+        grid.innerHTML = `<div style="grid-column: 1/-1; padding:32px; text-align:center; color:var(--accent-red); font-family:var(--font-mono); font-size:12px;">FAILED_TO_LOAD_MODELS: ${err.message}</div>`;
+        addLog(`LOAD_MODELS_FAILED: ${err.message}`, 'ERR');
+    }
+}
+
+function updateHudModel(name, type) {
+    const hudName = document.getElementById('hudModelName');
+    const hudType = document.getElementById('hudModelType');
+    if (hudName) hudName.textContent = name;
+    if (hudType) {
+        if (type.toLowerCase() === 'tensorrt') {
+            hudType.textContent = 'TENSORRT_ENABLED';
+        } else if (type.toLowerCase() === 'onnx') {
+            hudType.textContent = 'ONNX_MODEL_LOADED';
+        } else {
+            hudType.textContent = 'PYTORCH_MODEL_LOADED';
+        }
+    }
+}
+
+window.loadModel = async function(name) {
+    addLog(`Loading model: ${name}...`, 'SYS');
+    try {
+        const response = await fetch(`/models/load/${name}`, { method: 'POST' });
+        const data = await response.json();
+        if (data.success) {
+            addLog(`MODEL_LOADED: ${name}`, 'SYS');
+            loadModels(); // Refresh list to update active card styling
+        } else {
+            addLog(`LOAD_FAILED: ${data.error}`, 'ERR');
+            alert(`Load failed: ${data.error}`);
+        }
+    } catch (err) {
+        addLog(`LOAD_ERR: ${err.message}`, 'ERR');
+        alert(`Load error: ${err.message}`);
+    }
+}
+
+window.deleteModel = async function(name) {
+    if (!confirm(`Are you sure you want to delete model "${name}"? This will remove it from the registry and delete the file from the JetRacer's storage.`)) {
+        return;
+    }
+    
+    addLog(`Deleting model: ${name}...`, 'SYS');
+    try {
+        const response = await fetch(`/models/${name}`, { method: 'DELETE' });
+        const data = await response.json();
+        if (data.success) {
+            addLog(`MODEL_DELETED: ${name}`, 'SYS');
+            loadModels();
+        } else {
+            addLog(`DELETE_FAILED: ${data.error}`, 'ERR');
+            alert(`Delete failed: ${data.error}`);
+        }
+    } catch (err) {
+        addLog(`DELETE_ERR: ${err.message}`, 'ERR');
+        alert(`Delete error: ${err.message}`);
+    }
+}
+
+// Modal management
+window.closeUploadModal = function() {
+    const modal = document.getElementById('uploadModelModal');
+    if (modal) modal.style.display = 'none';
+};
+
+const btnOpenUpload = document.getElementById('btnOpenUploadModal');
+if (btnOpenUpload) {
+    btnOpenUpload.addEventListener('click', () => {
+        document.getElementById('uploadModelForm').reset();
+        document.getElementById('uploadProgressContainer').style.display = 'none';
+        document.getElementById('uploadProgressBar').style.width = '0%';
+        document.getElementById('uploadProgressVal').textContent = '0%';
+        document.getElementById('uploadStatus').innerHTML = '';
+        document.getElementById('btnSubmitUpload').disabled = false;
+        document.getElementById('uploadModelModal').style.display = 'flex';
+    });
+}
+
+// Upload execution
+window.doModelUpload = function(event) {
+    event.preventDefault();
+    
+    const fileInput = document.getElementById('uploadModelFile');
+    const nameInput = document.getElementById('uploadModelName');
+    const descInput = document.getElementById('uploadModelDesc');
+    const typeSelect = document.getElementById('uploadModelType');
+    const statusEl = document.getElementById('uploadStatus');
+    const progressContainer = document.getElementById('uploadProgressContainer');
+    const progressBar = document.getElementById('uploadProgressBar');
+    const progressVal = document.getElementById('uploadProgressVal');
+    const btnSubmit = document.getElementById('btnSubmitUpload');
+    
+    if (!fileInput.files || fileInput.files.length === 0) {
+        statusEl.innerHTML = '<span style="color:var(--accent-red);">Please select a model file.</span>';
+        return;
+    }
+    
+    const file = fileInput.files[0];
+    const name = nameInput.value.trim();
+    const description = descInput.value.trim();
+    const type = typeSelect.value;
+    
+    // Client-side extension validation
+    const filename = file.name;
+    const ext = filename.substring(filename.lastIndexOf('.')).toLowerCase();
+    if (!['.engine', '.onnx', '.pt', '.pth'].includes(ext)) {
+        statusEl.innerHTML = '<span style="color:var(--accent-red);">Invalid file extension. Supported: .engine, .onnx, .pt, .pth</span>';
+        return;
+    }
+    
+    // Prepare form data
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('name', name);
+    formData.append('description', description);
+    formData.append('type', type);
+    
+    // XHR to support progress updates
+    const xhr = new XMLHttpRequest();
+    
+    btnSubmit.disabled = true;
+    progressContainer.style.display = 'flex';
+    progressBar.style.width = '0%';
+    progressVal.textContent = '0%';
+    statusEl.innerHTML = '<span style="color:#fbbf24;"><i class="fas fa-circle-notch fa-spin"></i> Uploading...</span>';
+    
+    xhr.upload.addEventListener('progress', (e) => {
+        if (e.lengthComputable) {
+            const percent = Math.round((e.loaded / e.total) * 100);
+            progressBar.style.width = `${percent}%`;
+            progressVal.textContent = `${percent}%`;
+        }
+    });
+    
+    xhr.addEventListener('load', () => {
+        let responseData = {};
+        try {
+            responseData = JSON.parse(xhr.responseText);
+        } catch (e) {}
+        
+        if (xhr.status >= 200 && xhr.status < 300 && responseData.success) {
+            statusEl.innerHTML = '<span style="color:var(--accent-green);"><i class="fas fa-check-circle"></i> UPLOAD SUCCESSFUL!</span>';
+            addLog(`MODEL_UPLOADED: ${name}`, 'SYS');
+            setTimeout(() => {
+                closeUploadModal();
+                loadModels();
+            }, 1500);
+        } else {
+            const err = responseData.error || `Upload failed with status ${xhr.status}`;
+            statusEl.innerHTML = `<span style="color:var(--accent-red);"><i class="fas fa-times-circle"></i> FAILED: ${err}</span>`;
+            addLog(`UPLOAD_FAILED: ${name} — ${err}`, 'ERR');
+            btnSubmit.disabled = false;
+        }
+    });
+    
+    xhr.addEventListener('error', () => {
+        statusEl.innerHTML = '<span style="color:var(--accent-red);"><i class="fas fa-times-circle"></i> NETWORK_ERROR</span>';
+        addLog('UPLOAD_ERROR: Connection failed', 'ERR');
+        btnSubmit.disabled = false;
+    });
+    
+    xhr.open('POST', '/models/upload');
+    xhr.send(formData);
+}
+
+// Bind loadModels to models section link click
+navLinksGallery.forEach(link => {
+    link.addEventListener('click', (e) => {
+        if (link.dataset.section === 'models') {
+            loadModels();
+        }
+    });
+});
+
+// Run initial models status check to sync HUD
+setTimeout(() => {
+    fetch('/models')
+        .then(r => r.json())
+        .then(models => {
+            if (Array.isArray(models)) {
+                const active = models.find(m => m.active);
+                if (active) {
+                    updateHudModel(active.name, active.type);
+                }
+            }
+        })
+        .catch(() => {});
+}, 1000);

@@ -262,9 +262,11 @@ def _make_blank_jpeg(msg="Camera offline"):
     return buf.tobytes()
 
 _BLANK_JPEG = None  # lazy-init
+latest_frame_lock = threading.Lock()
 
-def generate_frames():
-    global _BLANK_JPEG, camera, camera_running, latest_frame_jpeg
+def capture_loop():
+    """Background thread to continuously read frames from the camera and update the global latest_frame_jpeg."""
+    global camera, camera_running, latest_frame_jpeg
     frame_interval = 1.0 / 30  # target 30 fps
     consecutive_failures = 0
     while True:
@@ -272,13 +274,16 @@ def generate_frames():
         with camera_lock:
             c = camera
             running = camera_running
+            
         if c is None or not running:
-            if _BLANK_JPEG is None:
-                _BLANK_JPEG = _make_blank_jpeg()
-            yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + _BLANK_JPEG + b'\r\n')
-            time.sleep(0.2)
+            time.sleep(0.1)
             continue
-        ret, frame = c.read()
+            
+        try:
+            ret, frame = c.read()
+        except Exception as e:
+            ret, frame = False, None
+            
         if not ret or frame is None:
             consecutive_failures += 1
             if consecutive_failures >= 30:
@@ -295,15 +300,44 @@ def generate_frames():
                 threading.Thread(target=open_camera, daemon=True).start()
             time.sleep(0.05)
             continue
+            
         consecutive_failures = 0
-        _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
-        latest_frame_jpeg = buffer.tobytes()
-        yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' +
-               latest_frame_jpeg + b'\r\n')
+        try:
+            _, buffer = cv2.imencode('.jpg', frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
+            jpeg_bytes = buffer.tobytes()
+            with latest_frame_lock:
+                latest_frame_jpeg = jpeg_bytes
+        except Exception as e:
+            pass
+            
         elapsed = time.time() - t0
         sleep_t = frame_interval - elapsed
         if sleep_t > 0:
             time.sleep(sleep_t)
+
+threading.Thread(target=capture_loop, daemon=True).start()
+
+def generate_frames():
+    global _BLANK_JPEG, latest_frame_jpeg
+    frame_interval = 1.0 / 30  # target 30 fps
+    while True:
+        t0 = time.time()
+        with latest_frame_lock:
+            frame_bytes = latest_frame_jpeg
+            
+        if frame_bytes is None:
+            if _BLANK_JPEG is None:
+                _BLANK_JPEG = _make_blank_jpeg()
+            frame_bytes = _BLANK_JPEG
+            
+        yield (b'--frame\r\nContent-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+        
+        elapsed = time.time() - t0
+        sleep_t = frame_interval - elapsed
+        if sleep_t > 0:
+            time.sleep(sleep_t)
+        else:
+            time.sleep(0.01)
 
 # ── Routes ─────────────────────────────────────────────────────────────────────
 
@@ -440,21 +474,43 @@ def drive():
     return jsonify({"status": "ok"})
 
 
+hardware_stats = {
+    "battery_percent": 0,
+    "battery_voltage": 0.0,
+}
+hardware_stats_lock = threading.Lock()
+
+def jtop_poll_loop():
+    global hardware_stats
+    try:
+        from jtop import jtop
+    except ImportError:
+        return
+
+    while True:
+        try:
+            with jtop() as jetson:
+                if jetson.ok():
+                    stats = jetson.stats
+                    pct = stats.get('VDD_IN', 0)
+                    with hardware_stats_lock:
+                        hardware_stats["battery_percent"] = pct
+                        hardware_stats["battery_voltage"] = 12.0
+        except Exception:
+            pass
+        time.sleep(5.0)
+
+threading.Thread(target=jtop_poll_loop, daemon=True).start()
+
+
 @app.route('/status')
 def status():
     """Returns live telemetry for the HUD."""
     try:
-        # Battery (via jtop if available)
-        battery_percent = 0
-        battery_voltage = 0.0
-        try:
-            from jtop import jtop
-            with jtop() as jetson:
-                stats = jetson.stats
-                battery_percent = stats.get('VDD_IN', 0)
-                battery_voltage = 12.0  # placeholder
-        except Exception:
-            pass
+        # Battery (via background cached hardware stats)
+        with hardware_stats_lock:
+            battery_percent = hardware_stats["battery_percent"]
+            battery_voltage = hardware_stats["battery_voltage"]
 
         # CPU temp via sysfs
         cpu_temp = 0
